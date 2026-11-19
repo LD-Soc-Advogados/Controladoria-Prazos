@@ -3,8 +3,13 @@
 Sistema interno de controle de prazos judiciais e de pauta de audiências.
 Operado pela **controladoria do escritório**.
 
-> ⚠️ **Repositório privado.** Os arquivos aqui citam nome de parte, número de
-> processo e os e-mails da equipe. Não torne este repositório público.
+> ⚠️ **Este repositório é PÚBLICO** — decisão da controladoria em 19/11/2026,
+> tomada depois de ver o que fica exposto. Os arquivos aqui citam nome de parte,
+> número de processo e os e-mails da equipe. **Escreva pensando nisso.**
+>
+> O que **não entra aqui de jeito nenhum**, e o `.gitignore` barra: relatórios
+> das rodadas, planilhas, atas, PDFs e imagens — **documento de cliente não sobe.**
+> Confira o `git status` antes de cada envio.
 
 ## O que o sistema resolve
 

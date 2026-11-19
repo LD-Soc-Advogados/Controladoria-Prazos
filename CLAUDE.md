@@ -13,13 +13,32 @@ Divisão de trabalho no escritório: a Luciana cuida do **Nordeste**; o advogado
 
 - **Painel (artefato publicado):** https://claude.ai/artifact/EFMQQ6arSuWbZhdA73dMww
 - **Fonte:** `painel-prazos.html` (nesta pasta)
-- **Repositório (PRIVADO):** https://github.com/Lucianarovesse/controladoria-prazos
-  Criado em 16/11/2026, no perfil pessoal dela (escolha dela quando perguntei).
-  ⚠️ **Não torne público.** Sobem os e-mails da equipe (`pauta_emails.py`) e nomes de
-  parte e números de processo nos exemplos deste arquivo. O `.gitignore` já deixa de
-  fora `relatorios/`, `__pycache__/` e todo `.xlsx`/`.pdf`/imagem — **documento de
-  cliente não entra no repositório, nem privado.** Conferido no envio: só os 10
-  arquivos de código e documentação subiram.
+- 🔴 **Repositório: `https://github.com/LD-Soc-Advogados/Controladoria-Prazos` —
+  da ORGANIZAÇÃO e PÚBLICO.** Escolha dela em 19/11/2026, perguntada e confirmada
+  (*"pode usar o da organização"*).
+
+  **Existem DOIS, e confundi-los custou meia hora nesta data.** O antigo
+  `https://github.com/Lucianarovesse/controladoria-prazos` (pessoal, privado,
+  criado em 16/11/2026) é o que este arquivo apontava. Em 18/11 alguém subiu o
+  projeto **em `.zip`** para o da organização, que **já nasceu público** — e o
+  aviso "não torne público" abaixo, escrito para o pessoal, continuou aqui
+  descrevendo um repositório que não era mais o usado. **O da organização é o
+  que vale.** Se o pessoal ainda existir, ele está defasado.
+
+  ⚠️ **Sendo público, trate o que sobe como leitura aberta.** Sobem os e-mails da
+  equipe (`pauta_emails.py`) e nomes de parte e números de processo nos exemplos
+  deste arquivo — foi mostrado a ela antes de subir e ela manteve público, de
+  propósito. O que **continua valendo sem exceção** é o `.gitignore`: ele deixa
+  de fora `relatorios/`, `__pycache__/` e todo `.xlsx`/`.pdf`/imagem —
+  **documento de cliente não entra no repositório, público ou privado.**
+  Confira isso a cada envio, como foi conferido no primeiro.
+
+  ⚠️ **Push a partir de uma sessão do Claude na nuvem exige o app do Claude
+  instalado NA ORGANIZAÇÃO** (`https://github.com/apps/claude/installations/select_target`),
+  o que só um dono da `LD-Soc-Advogados` faz. Sem isso o push volta **HTTP 403**
+  com "Claude doesn't have GitHub access"; clonar funciona, porque o
+  repositório é público. Em 19/11/2026 ainda não estava instalado, e os commits
+  daquele dia ficaram prontos sem subir.
 
   ⚠️ **Git e GitHub CLI são PORTÁTEIS nesta máquina.** O instalador normal do Git
   exige administrador e é cancelado numa sessão sem interação. Ficaram em
