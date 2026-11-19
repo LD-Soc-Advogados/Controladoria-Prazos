@@ -532,7 +532,20 @@ function periodoPadrao(){
    quase sempre cita a palavra "sentença", então "sentença" genérica só pode agir
    depois que apelação, agravo, embargos e cumprimento já tiveram sua chance. */
 const REGRAS = [
- {id:"audiencia",     rotulo:"Audiência designada",       dias:0,  prov:"Pauta: confirmar modalidade, link e preposto",            re:/audi[êe]ncia\s+(de\s+)?(concilia|instru|julgamento|una|designad)|designo\s+audi[êe]ncia|redesignad/i},
+ /* 🔴 A audiência precisa estar sendo DESIGNADA — não basta a palavra aparecer.
+    Ela pegou o erro em 19/11/2026, olhando o 0000278-47.2025.8.17.3050:
+    *"onde você supôs que seria audiência?"*. O teor dizia *"pretendem produzir
+    outras provas, notadamente prova oral EM AUDIÊNCIA DE INSTRUÇÃO,
+    especificando-as"* — é especificação de provas, e o gatilho antigo
+    (`audiência de instru…`) casava assim mesmo. Como esta regra é a PRIMEIRA da
+    lista, ela ganhava da regra `provas`, que era a certa. No mesmo dia o
+    8000714-15.2026.8.05.0156 caiu igual: uma sentença narrando *"Realizada
+    audiência de conciliação"* no passado.
+    Agora exige um verbo de designação perto da palavra, ou a convocação para
+    comparecer. Levantado dos e-mails de audiência reais dela (22/10 a 19/11):
+    "audiência … designada para o dia", "pautada Audiência Instrução",
+    "Audiência … designada conduzida por", "comparecer à Audiência UNA". */
+ {id:"audiencia",     rotulo:"Audiência designada",       dias:0,  prov:"Pauta: confirmar modalidade, link e preposto",            re:/(?:designo|designad[ao]|redesignad[ao]|remarcad[ao]|pautad[ao]|aprazad[ao]|marcad[ao])[^.]{0,60}?audi[êe]ncia|audi[êe]ncia[^.]{0,80}?(?:designad[ao]|redesignad[ao]|remarcad[ao]|pautad[ao]|aprazad[ao])|comparecer\s+[àa]\s+audi[êe]ncia|audi[êe]ncia[^.]{0,40}?(?:a\s+ser\s+realizada|ser[áa]\s+realizada)|\bredesignad[ao]\b/i},
  {id:"provas",        rotulo:"Especificação de provas",   dias:5,  prov:"Especificar provas",                                      re:/especifi\w*\s+(as\s+)?provas|provas\s+que\s+pretend|especifica[çc][ãa]o\s+de\s+provas/i},
  {id:"laudo",         rotulo:"Laudo pericial",            dias:15, prov:"Conferir laudo — avaliar impugnação",                     re:/laudo\s+(pericial|m[ée]dico|cont[áa]bil)|\blaudo\b|per[íi]cia\s+(realizada|conclu[íi]da)|manifest\w*.{0,25}laudo/i},
  {id:"embargos",      rotulo:"Embargos de declaração",    dias:5,  prov:"Avaliar embargos de declaração",                          re:/embargos\s+de\s+declara[çc][ãa]o|embargos\s+declarat/i},
@@ -1776,22 +1789,26 @@ async function conferirRespostas(btn){
  * Trava de segurança: só manda para endereço que está em `advogados`. Um erro de
  * digitação no cadastro não pode virar e-mail com publicação judicial para fora.
  */
-/* `assinatura` existe por causa do e-mail de AUDIÊNCIA, cujo corpo já termina em
-   "Luciana" — o modelo dela. Com a assinatura do Gmail ligada sairia o nome duas
-   vezes. O e-mail de prazo continua sem despedida no corpo e com a assinatura
-   ligada, que é como ela sempre mandou. Omitir o campo mantém o comportamento
-   antigo: só o modelo de audiência passa `false`. */
-async function enviarPeloGmail({destinatario, copia, assunto, corpo, anexos, assinatura}){
+/* O campo "Para" aceita MAIS DE UM endereço, separados por vírgula ou ponto e
+   vírgula. Veio do e-mail de audiência, que ela manda para quatro pessoas de uma
+   vez (ver DESTINO_AUDIENCIA). O e-mail de prazo continua mandando para um só.
+   🔒 A trava vale para CADA endereço: basta um fora da lista e nada é enviado. */
+async function enviarPeloGmail({destinatario, copia, assunto, corpo, anexos}){
   if(!S.mcp) throw Object.assign(new Error("O envio não está disponível nesta visualização. Abra o painel pelo Claude."), {code:"sem_mcp"});
-  const alvo = String(destinatario||"").toLowerCase();
-  if(!alvo) throw Object.assign(new Error("Esse advogado está sem e-mail cadastrado."), {code:"sem_email"});
+  const alvos = String(destinatario||"").split(/[;,]/).map(s=>s.trim()).filter(Boolean);
+  if(!alvos.length) throw Object.assign(new Error("Esse advogado está sem e-mail cadastrado."), {code:"sem_email"});
   // O próprio endereço dela sempre passa: é como ela testa sem entrar na equipe
   // (entrar na equipe a colocaria de volta na distribuição de prazos).
-  const euMesma = !!S.euEmail && alvo === String(S.euEmail).toLowerCase();
-  const conhecido = euMesma || S.advs.some(a => String(a.email||"").toLowerCase() === alvo);
-  if(!conhecido) throw Object.assign(new Error("Esse endereço não está na sua equipe — não envio para fora do cadastro."), {code:"desconhecido"});
-  const input = {to:[destinatario], subject:assunto, body:corpo,
-                 includeSignature: assinatura !== false};
+  const permitido = e => {
+    const alvo = e.toLowerCase();
+    return (!!S.euEmail && alvo === String(S.euEmail).toLowerCase())
+        || S.advs.some(a => String(a.email||"").toLowerCase() === alvo)
+        || DESTINO_AUDIENCIA.some(d => d.toLowerCase() === alvo);
+  };
+  const fora = alvos.filter(e => !permitido(e));
+  if(fora.length) throw Object.assign(
+    new Error("Não envio para fora do cadastro: "+fora.join(", ")), {code:"desconhecido"});
+  const input = {to:alvos, subject:assunto, body:corpo, includeSignature:true};
   if(copia) input.cc = [copia];
   return S.mcp.callTool(GMAIL, "send_message", (anexos && anexos.length) ? {...input, attachments:anexos} : input);
 }
@@ -2456,57 +2473,70 @@ function gerarEmailPrazo(lista, adv){
     + String(p.texto||"").trim()+"\n\n_________________________";
   const corpo = abertura(adv?.nome)+"\n\n"+lista.map(bloco).join("\n\n\n");
   const destinatario = adv?.email||"";
-  return {assunto, corpo, destinatario, copia:emailCopia(destinatario), assinatura:true};
+  return {assunto, corpo, destinatario, copia:emailCopia(destinatario)};
 }
 
 /* ============================================================
-   E-MAIL DE AUDIÊNCIA — o modelo que ela manda à mão
+   E-MAIL DE AUDIÊNCIA — o modelo REAL dela
    ------------------------------------------------------------
    Pedido dela em 19/11/2026: *"os que vc identificar que é audiência tenta
-   copiar o modelo que eu envio manualmente"*.
+   copiar o modelo que eu envio manualmente"*, e depois, vendo que eu tinha
+   errado: *"VÊ O EXEMPLO Q EU MANDEI DO CASO 0202272-36.2024.8.06.0151, eu
+   copiei várias pessoas inclusive pra enviar"*.
 
-   O modelo NÃO foi inventado: é o dos e-mails individuais da pauta que ela
-   enviou em 13/11/2026 (Kawan, Clévio, Bárbara Orsini), o mesmo que o
-   `pauta_emails.py` reproduz caractere por caractere. Dele vêm, literalmente:
-     · assunto "Sua audiência – DD/MM" / "Suas audiências – …"
-     · abertura "Oi, Kawan!" (só o primeiro nome, com exclamação)
-     · a linha de audiência com travessão "–", não hífen
-     · o fecho "Qualquer dúvida, me chama." + "Luciana"
-     · SEM assinatura do Gmail — o corpo já termina no nome dela
+   🔴 A primeira versão desta função foi copiada do e-mail da PAUTA SEMANAL
+   ("Oi, Kawan! / Segue a audiência da semana…"). Estava errada: aquele é outro
+   fluxo, outro público e outro texto. O e-mail de audiência de PUBLICAÇÃO é
+   este, levantado de NOVE e-mails reais dela, de 22/10 a 19/11/2026 — não
+   deduzido:
 
-   ⚠️ DUAS coisas do modelo dela foram deixadas de fora DE PROPÓSITO, porque
-   aqui seriam mentira:
-   1. *"(o convite também está no Google Agenda)"* — na pauta o convite já
-      existe; esta audiência acabou de ser publicada e não há convite nenhum.
-   2. *"da semana em que você está como responsável"* — não é pauta da semana,
-      é uma publicação avulsa.
-   Não recoloque as duas achando que é fidelidade ao modelo: fidelidade a um
-   texto que afirma o que não aconteceu manda a pessoa procurar um convite que
-   não existe.
+     Para:    louisdolabela@ · financeiro@ · administrativo@ · andreza@
+     Assunto: AUDIENCIA- MARIA DE FATIMA PINTO PESSOA-0202272-36.2024.8.06.0151- 03/12/2026 ÀS 10:30
+     Corpo:   o teor da publicação, e MAIS NADA
+              (a despedida é a assinatura do Gmail dela)
 
-   ⚠️ O Louis CONTINUA em cópia, ao contrário do e-mail de pauta, que não tem
-   cópia nenhuma. É o pedido permanente dela de 13/11/2026 para os e-mails
-   gerados pelo painel. O campo é editável na tela — se ela quiser audiência
-   sem cópia, é aqui que muda.
+   O que os nove mostram, e que eu não teria adivinhado:
+   · Os QUATRO destinatários são FIXOS e vão todos em "Para", nenhum em cópia —
+     repetem-se sem exceção nos nove. **Não é o advogado escolhido na triagem**:
+     a audiência vai para quem monta a pauta (Ludmila/financeiro e
+     administrativo), para o Louis e para a Andreza.
+   · O corpo é só o teor. Sem abertura, sem saudação, sem despedida.
+   · A data e a hora no assunto são hábito NOVO: o Louis pediu em 09/11/2026
+     (*"crie o habito de colocar tb no titulo do email dia e hora da
+     audiencia"*) e ela respondeu *"Combinado!"*. Os quatro e-mails de 16 a
+     19/11 têm; os anteriores, não. Por isso o assunto leva data sempre que o
+     teor permitir lê-la com segurança.
+
+   ⚠️ No e-mail dela o teor vai SEM o cabeçalho do tribunal — ela corta à mão,
+   e o corte varia de tribunal para tribunal. Aqui vai o teor inteiro: cortar
+   por regra arriscaria comer conteúdo, e o campo é editável na tela.
    ============================================================ */
 
-/** MARIA DAS GRACAS → Maria Das Gracas. O DJEN manda a parte em maiúsculas e no
-    e-mail de audiência ela escreve em caixa mista. Mesma regra do pauta_emails.py. */
-const caixaMista = s => String(s||"").toLowerCase()
-  .replace(/(^|[\s'’\-])([a-zà-ÿ])/g, (_,a,b)=>a+b.toUpperCase());
+/** Os quatro destinatários fixos do e-mail de audiência.
+    ⚠️ `administrativo@` NÃO está em `advogados`, e não deve entrar: cadastrá-lo
+    o colocaria na distribuição de PRAZOS, que é o erro já cometido com a
+    Ludmila e o Rodrigo (ver "Equipe" no CLAUDE.md). Por isso a trava de envio
+    aceita esta lista à parte. Endereços conferidos nos nove e-mails reais. */
+const DESTINO_AUDIENCIA = [
+  "louisdolabela@lucchesidolabela.com.br",
+  "financeiro@lucchesidolabela.com.br",
+  "administrativo@lucchesidolabela.com.br",
+  "andreza@lucchesidolabela.com.br"
+];
 
 /**
- * Data (e hora) da audiência, lidas do PRÓPRIO texto da publicação.
+ * Data e hora da audiência, lidas do PRÓPRIO texto da publicação.
  *
- * 🔴 Devolve "" sempre que houver dúvida, e isso é o ponto do método. Uma data de
- * audiência errada no e-mail é pior do que data nenhuma: a pessoa confia, não
- * comparece, e o escritório perde a audiência. Por isso:
- *   · a data tem que estar logo depois de "audiência" / "designada" / "redesignada",
- *     e não em qualquer lugar do teor (o cabeçalho do clipping e a data da
- *     assinatura do juiz também são DD/MM/AAAA);
- *   · achando MAIS DE UMA data distinta, não escolhe nenhuma — publicação de
+ * 🔴 Devolve null sempre que houver dúvida, e isso é o ponto do método. Hora de
+ * audiência errada no assunto é pior do que assunto sem hora: quem monta a pauta
+ * confia, lança errado, e ninguém comparece. Por isso:
+ *   · a data tem que vir logo depois de "audiência"/"designada"/"redesignada",
+ *     não em qualquer lugar do teor — a data do provimento citado e a da
+ *     assinatura do juiz também são DD/MM/AAAA (no caso real do TJCE havia um
+ *     "28/01/2021" solto, de um provimento de 2021);
+ *   · achando MAIS DE UMA data distinta, não escolhe nenhuma: publicação de
  *     redesignação cita a antiga e a nova, e adivinhar qual é qual seria chute.
- * O teor inteiro vai no corpo do e-mail logo abaixo, então quem recebe confere.
+ * O teor inteiro vai no corpo logo abaixo, então quem recebe confere.
  */
 function audienciaQuando(texto){
   const t = limpar(texto);
@@ -2514,46 +2544,72 @@ function audienciaQuando(texto){
   const achados = new Map();
   let m;
   while((m = re.exec(t))){
-    const hora = m[2] ? String(m[2]).padStart(2,"0")+"h"+(m[3]||"00") : "";
+    const hora = m[2] ? String(m[2]).padStart(2,"0")+":"+(m[3]||"00") : "";
     if(!achados.get(m[1])) achados.set(m[1], hora);
   }
-  if(achados.size !== 1) return "";
+  if(achados.size !== 1) return null;
   const [data, hora] = [...achados.entries()][0];
-  return data + (hora ? " às "+hora : "");
+  return {data, hora};
+}
+
+/**
+ * Nome da parte para o assunto.
+ *
+ * `parte_contraria` vem do `destinatarios` do DJEN e é o caminho bom — mas vem
+ * VAZIO com frequência: na publicação real do TJCE de 19/11 o único destinatário
+ * era o próprio Louis, e o nome "MARIA DE FATIMA PINTO PESSOA", que ela pôs no
+ * assunto, só existia dentro do teor, em "AUTOR: ...". Daí a leitura do polo
+ * ativo no texto, como segunda via. Sem nenhum dos dois, devolve "".
+ */
+function parteDaAudiencia(p){
+  const direto = String(p.parte_contraria||"").trim();
+  if(direto) return direto;
+  const t = limpar(p.texto);
+  const m = t.match(/(?:AUTOR|AUTORA|EXEQUENTE|REQUERENTE|RECLAMANTE|POLO ATIVO)\s*:\s*([A-ZÀ-Ü][A-ZÀ-Ü\s'.\-]{4,70}?)(?=\s+[A-ZÀ-Ü]{2,}\s*:|$)/);
+  return m ? m[1].trim().replace(/\s+/g," ") : "";
+}
+
+/**
+ * O teor sem o cabeçalho do tribunal.
+ *
+ * No e-mail que ela mandou em 19/11 o corpo começa em *"Conforme disposição
+ * expressa nos artigos 129 a 133…"* — ou seja, ela apagou à mão o
+ * "ESTADO DO CEARÁ - PODER JUDICIÁRIO … PROCESSO Nº … CLASSE … AUTOR … REU …
+ * ATO ORDINATÓRIO" que vem antes.
+ *
+ * ⚠️ O corte é CONSERVADOR de propósito: só vale se a marca do ato
+ * (ATO ORDINATÓRIO, DESPACHO, DECISÃO, SENTENÇA…) aparecer nos primeiros 400
+ * caracteres, e usa a ÚLTIMA delas nesse trecho. Fora disso devolve o teor
+ * inteiro. Cortar demais some com conteúdo da publicação, e isso é pior do que
+ * um cabeçalho sobrando — que ela apaga em dois segundos na própria tela.
+ */
+function teorDaAudiencia(texto){
+  const t = String(texto||"").trim();
+  const cabeca = t.slice(0, 400);
+  const re = /(?:ATO\s+ORDINAT[ÓO]RIO|DESPACHO|DECIS[ÃA]O|SENTEN[ÇC]A|INTIMA[ÇC][ÃA]O|CERTID[ÃA]O|EDITAL)\s*[:.\-]?\s+/gi;
+  let fim = 0, m;
+  while((m = re.exec(cabeca))) fim = m.index + m[0].length;
+  return fim ? t.slice(fim).trim() : t;
 }
 
 function gerarEmailAudiencia(lista, adv){
-  const n = lista.length;
   const p0 = lista[0] || {};
-  const quando0 = audienciaQuando(p0.texto);
-  const primeiro = String(adv?.nome||"").split(" ")[0];
-  /* Assunto no formato dela. Sem data confiável no teor, entra a parte contrária
-     e, na falta dela, o processo — nunca uma data chutada. */
-  const assunto = n === 1
-    ? "Sua audiência – " + (quando0 ? quando0.slice(0,5)
-        : (p0.parte_contraria ? caixaMista(p0.parte_contraria) : p0.processo))
-    : "Suas audiências – " + n + " processos";
-  const linha = p => {
-    const quando = audienciaQuando(p.texto);
-    return "- " + (quando ? quando + " – " : "")
-      + (p.parte_contraria ? caixaMista(p.parte_contraria) + " – " : "")
-      + p.processo
-      + (p.orgao ? " – " + p.orgao : "")
-      + (p.tribunal ? " (" + p.tribunal + ")" : "");
-  };
-  const teor = p => (n > 1 ? p.processo + "\n\n" : "")
-    + "Teor da publicação:\n\n_________________________\n\n"
-    + String(p.texto||"").trim() + "\n\n_________________________";
-  const corpo =
-      "Oi" + (primeiro ? ", " + primeiro : "") + "!\n\n"
-    + (n === 1
-        ? "Segue a audiência designada nesta publicação, para você confirmar a modalidade, o link e o preposto:"
-        : "Seguem as audiências designadas nestas publicações, para você confirmar a modalidade, o link e o preposto:")
-    + "\n\n" + lista.map(linha).join("\n") + "\n\n"
-    + lista.map(teor).join("\n\n\n")
-    + "\n\nQualquer dúvida, me chama.\n\nLuciana";
-  const destinatario = adv?.email||"";
-  return {assunto, corpo, destinatario, copia:emailCopia(destinatario), assinatura:false};
+  const q = audienciaQuando(p0.texto);
+  const parte = parteDaAudiencia(p0);
+  /* Assunto no formato dela, com a pontuação dos e-mails reais. Sem data
+     confiável no teor o assunto sai sem ela — nunca com data chutada. */
+  const assunto = "AUDIENCIA- " + (parte || "PROCESSO") + "-" + p0.processo
+    + (q ? "- " + q.data + (q.hora ? " ÀS " + q.hora : "") : "");
+  /* O corpo é o teor e nada mais. Num lote, um teor por processo, com o número
+     na frente para separar — ela manda um e-mail por audiência, então o lote é
+     caso de borda, não o normal. */
+  const corpo = lista.length === 1
+    ? teorDaAudiencia(p0.texto)
+    : lista.map(p => p.processo + "\n\n" + teorDaAudiencia(p.texto)).join("\n\n\n");
+  /* Os quatro vão em "Para", sem cópia — é o que os nove e-mails mostram.
+     O advogado escolhido na triagem NÃO entra: a audiência vai para quem monta
+     a pauta. Ele continua gravado como responsável do prazo no painel. */
+  return {assunto, corpo, destinatario:DESTINO_AUDIENCIA.join(", "), copia:""};
 }
 
 /** Este prazo nasceu de uma publicação de audiência?
@@ -2576,7 +2632,7 @@ function gerarEmail(lista, adv){
 function modalEmail(lista, adv, opts){
   if(!lista.length){ toast("Não há prazos em aberto para esse advogado."); return; }
   const previa = !!(opts && opts.previa);
-  const {assunto, corpo, destinatario, copia, assinatura} = gerarEmail(lista, adv);
+  const {assunto, corpo, destinatario, copia} = gerarEmail(lista, adv);
   // Só os que ainda esperam resposta e cujo e-mail nunca foi registrado como enviado.
   const naoEnviados = previa ? [] : lista.filter(p=>p.status==="pendente" && !p.enviado_em);
   // Sem exigir destinatário aqui: os campos são editáveis e a validação é no clique.
@@ -2683,7 +2739,7 @@ function modalEmail(lista, adv, opts){
       const c = campos();   // o que ela editou, não o texto gerado
       c.anexos = await lerAnexos();
       await enviarPeloGmail({destinatario:S.euEmail, copia:"", assunto:"[TESTE] "+c.assunto,
-                             corpo:c.corpo, anexos:c.anexos, assinatura});
+                             corpo:c.corpo, anexos:c.anexos});
       toast("Teste enviado para "+S.euEmail+". Nada foi registrado como enviado.", 5000);
     }catch(e){
       toast(MSG_GMAIL[e.code] || e.message || "Não consegui enviar o teste.", 5200);
@@ -2697,7 +2753,7 @@ function modalEmail(lista, adv, opts){
     try{
       const c = campos();   // o que está na tela manda, não o texto gerado
       c.anexos = await lerAnexos();
-      const r = await enviarPeloGmail({...c, assinatura});
+      const r = await enviarPeloGmail(c);
       /* Guardo a CONVERSA do Gmail no prazo. É a chave da baixa automática do
          "ok": lendo os e-mails dela vi que as respostas são curtas — "ok",
          "Feito", "ED no peticiona" — e quase nunca repetem o número do processo.
