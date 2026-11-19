@@ -1,0 +1,20 @@
+# Cache do Python — nunca vai para o repositório
+__pycache__/
+*.pyc
+
+# Relatórios das rodadas: trazem número de processo e nome de parte de casos reais.
+# O valor deles é do dia; o histórico não precisa ficar versionado.
+relatorios/
+
+# Planilhas e anexos baixados do Drive e do e-mail (pauta, atas, prints).
+# São documentos de cliente — não entram no repositório, nem privado.
+*.xlsx
+*.xls
+*.csv
+*.pdf
+*.jpg
+*.jpeg
+*.png
+
+# Configuração local da sessão do Claude Code
+.claude/

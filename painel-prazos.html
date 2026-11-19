@@ -1,0 +1,3201 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Controladoria de Prazos</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: barra fixa de identificação + abas; cada aba é uma coluna única de cartões,
+   densidade alta (instrumento de trabalho, não página de leitura). */
+:root{
+  --bg:#F4F6F9; --surface:#FFFFFF; --surface-2:#EDF0F5; --surface-3:#E3E8F0;
+  --fg:#101521; --fg-muted:#59647A; --fg-faint:#8A94A6;
+  --line:#DDE3EC; --line-strong:#C3CCDA;
+  --accent:#2B4A8F; --accent-fg:#FFFFFF; --accent-soft:#E6ECF8;
+  --ok:#1C7A4A; --ok-soft:#E0F2E8;
+  --warn:#9A6400; --warn-soft:#FCF0D9;
+  --crit:#B02222; --crit-soft:#FBE5E5;
+  --info:#5B4199; --info-soft:#EEE9F8;
+  --shadow:0 1px 2px rgba(16,21,33,.06),0 4px 12px rgba(16,21,33,.05);
+  --font-display:"Space Grotesk",system-ui,sans-serif;
+  --font-body:"Inter",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0D1117; --surface:#151B25; --surface-2:#1C2432; --surface-3:#232D3D;
+  --fg:#E8ECF3; --fg-muted:#9BA7BA; --fg-faint:#6B7689;
+  --line:#242E3C; --line-strong:#33404F;
+  --accent:#7FA0E8; --accent-fg:#0D1117; --accent-soft:#1B2740;
+  --ok:#5FD39B; --ok-soft:#13291F;
+  --warn:#E5B567; --warn-soft:#2C2314;
+  --crit:#F08A8A; --crit-soft:#2E1818;
+  --info:#B29BE8; --info-soft:#221B33;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 12px rgba(0,0,0,.25);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0D1117; --surface:#151B25; --surface-2:#1C2432; --surface-3:#232D3D;
+  --fg:#E8ECF3; --fg-muted:#9BA7BA; --fg-faint:#6B7689;
+  --line:#242E3C; --line-strong:#33404F;
+  --accent:#7FA0E8; --accent-fg:#0D1117; --accent-soft:#1B2740;
+  --ok:#5FD39B; --ok-soft:#13291F;
+  --warn:#E5B567; --warn-soft:#2C2314;
+  --crit:#F08A8A; --crit-soft:#2E1818;
+  --info:#B29BE8; --info-soft:#221B33;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 12px rgba(0,0,0,.25);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1180px;margin:0 auto}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---- cabeçalho ---- */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.hd{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-block:12px}
+.brand{display:flex;flex-direction:column;gap:1px;min-width:0;margin-right:auto}
+.brand h1{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.brand .sub{font-size:11.5px;color:var(--fg-muted);letter-spacing:.02em}
+.hd-stat{display:flex;flex-direction:column;align-items:flex-end;line-height:1.2}
+.hd-stat b{font-family:var(--font-display);font-size:19px;font-variant-numeric:tabular-nums}
+.hd-stat span{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--fg-faint)}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;border-top:1px solid var(--line)}
+.tabs::-webkit-scrollbar{display:none}
+.tab{background:none;border:0;padding:10px 13px;font-size:13px;font-weight:500;color:var(--fg-muted);border-bottom:2px solid transparent;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.tab .n{display:inline-block;min-width:17px;padding:0 4px;margin-left:5px;border-radius:9px;background:var(--surface-3);color:var(--fg-muted);font-size:10.5px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center}
+.tab[aria-selected="true"] .n{background:var(--accent);color:var(--accent-fg)}
+
+main{padding-block:16px 48px}
+section[hidden]{display:none!important}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.bar label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-faint);font-weight:600}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line-strong);border-radius:6px;padding:7px 9px;min-width:0}
+textarea{resize:vertical;line-height:1.5;width:100%}
+.btn{border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);border-radius:6px;padding:7px 13px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--surface-2)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+.btn-primary:hover{filter:brightness(1.08);background:var(--accent)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{padding:4px 9px;font-size:12px;border-radius:5px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
+.empty{border:1px dashed var(--line-strong);border-radius:10px;padding:34px 20px;text-align:center;color:var(--fg-muted)}
+.empty h3{font-size:15px;color:var(--fg);margin-bottom:6px}
+.empty p{margin:0 auto;max-width:48ch;font-size:13px}
+.note{font-size:12px;color:var(--fg-muted);background:var(--surface-2);border-left:3px solid var(--line-strong);padding:9px 12px;border-radius:0 6px 6px 0;margin-bottom:14px}
+.note b{color:var(--fg)}
+
+/* ---- chips ---- */
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.01em;white-space:nowrap}
+.c-ok{background:var(--ok-soft);color:var(--ok)}
+.c-warn{background:var(--warn-soft);color:var(--warn)}
+.c-crit{background:var(--crit-soft);color:var(--crit)}
+.c-info{background:var(--info-soft);color:var(--info)}
+.c-accent{background:var(--accent-soft);color:var(--accent)}
+.c-mute{background:var(--surface-3);color:var(--fg-muted)}
+
+/* ---- publicação ---- */
+.pub{border-bottom:1px solid var(--line);padding:13px 15px;display:grid;gap:9px}
+.pub:last-child{border-bottom:0}
+.pub-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pub-proc{font-family:var(--font-mono);font-size:12.5px;font-weight:500;letter-spacing:-.02em}
+.pub-org{font-size:12px;color:var(--fg-muted);width:100%;min-width:0}
+.pub-txt{font-size:12.5px;color:var(--fg-muted);line-height:1.55;max-height:4.65em;overflow:hidden;position:relative;cursor:pointer;min-width:0;overflow-wrap:anywhere}
+.pub-txt.open{max-height:none}
+.pub-txt::after{content:"";position:absolute;inset:auto 0 0 0;height:1.5em;background:linear-gradient(transparent,var(--surface))}
+.pub-txt.open::after{display:none}
+.sug{background:var(--accent-soft);border-radius:7px;padding:9px 11px;display:grid;gap:7px}
+.sug-hd{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--accent)}
+.sug-body{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sug-body select,.sug-body input{background:var(--surface);font-size:12.5px;padding:5px 8px}
+.acts{display:flex;gap:7px;flex-wrap:wrap}
+
+/* ---- tabela ---- */
+.tw{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-faint);font-weight:700;padding:9px 11px;border-bottom:1px solid var(--line);background:var(--surface-2);white-space:nowrap;position:sticky;top:0}
+td{padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+/* linha-título de cada responsável na aba Prazos */
+tr.grp td{background:var(--surface-2);font-weight:700;font-size:12.5px;padding:8px 11px}
+tbody tr.grp:hover td{background:var(--surface-2)}
+tr.grp .n{font-weight:600;color:var(--fg-muted);font-size:11px;margin-left:9px}
+
+/* ---- equipe ---- */
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.adv{padding:14px;display:grid;gap:11px}
+.adv-hd{display:flex;align-items:baseline;gap:8px;justify-content:space-between}
+.adv-hd h3{font-size:14.5px;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.adv-load{font-family:var(--font-display);font-size:27px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.adv-bar{display:flex;height:7px;border-radius:4px;overflow:hidden;background:var(--surface-3)}
+.adv-bar i{display:block}
+.adv-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--fg-muted)}
+.adv-legend b{font-variant-numeric:tabular-nums;color:var(--fg)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle}
+
+/* ---- agenda ---- */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-h{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--fg-faint);text-align:center;font-weight:700;padding-bottom:3px}
+.cal-d{background:var(--surface);border:1px solid var(--line);border-radius:6px;min-height:72px;padding:5px;display:flex;flex-direction:column;gap:3px}
+.cal-d.out{opacity:.4}
+.cal-d.today{border-color:var(--accent);border-width:2px}
+.cal-n{font-family:var(--font-mono);font-size:11px;color:var(--fg-muted);font-weight:500}
+.cal-d.today .cal-n{color:var(--accent);font-weight:700}
+.cal-e{font-size:10.5px;padding:2px 4px;border-radius:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+@media (max-width:560px){.cal-d{min-height:52px}.cal-e{font-size:9.5px}}
+.aud{border-bottom:1px solid var(--line);padding:11px 14px;display:grid;gap:6px}
+.aud:last-child{border-bottom:0}
+.aud-top{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.aud-dia{font-family:var(--font-mono);font-size:12.5px;font-weight:500;white-space:nowrap}
+.aud-nome{font-weight:600;font-size:13.5px;min-width:0;overflow-wrap:anywhere}
+.aud-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--fg-muted)}
+.aud-meta b{color:var(--fg);font-weight:500}
+.sec-h{font-family:var(--font-display);font-size:14px;font-weight:600;margin:18px 0 9px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* ---- modal ---- */
+.ov{position:fixed;inset:0;background:rgba(10,14,22,.55);z-index:40;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-left,0px))}
+.ov[hidden]{display:none!important}
+.modal{background:var(--surface);border-radius:12px;width:min(560px,100%);max-height:85vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,.3);padding:20px}
+.modal h2{font-size:17px;margin-bottom:14px}
+.f{display:grid;gap:5px;margin-bottom:12px}
+.f label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-faint);font-weight:600}
+.f input,.f select,.f textarea{width:100%}
+.f .hint{font-size:11.5px;color:var(--fg-faint)}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:7px;font-size:13px;font-weight:500;z-index:50;box-shadow:var(--shadow);max-width:90vw}
+.toast[hidden]{display:none!important}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+
+<header>
+  <div class="wrap">
+    <div class="hd">
+      <div class="brand">
+        <h1>Controladoria de Prazos</h1>
+        <div class="sub" id="brandSub">DJEN · OAB 124826/MG — Louis Augusto Dolabela Irrthum</div>
+      </div>
+      <div class="hd-stat"><b id="kpiHoje">—</b><span>hoje</span></div>
+      <div class="hd-stat"><b id="kpiPend" style="color:var(--warn)">—</b><span>sem OK</span></div>
+      <div class="hd-stat"><b id="kpiCrit" style="color:var(--crit)">—</b><span>vencendo</span></div>
+      <button class="btn btn-sm" id="btnTheme" title="Alternar tema">Tema</button>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" data-tab="triagem">Triagem<span class="n" id="nTri">0</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="prazos">Prazos<span class="n" id="nPrz">0</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="cumpridos">Cumpridos<span class="n" id="nCum">0</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="cobranca">Cobrança<span class="n" id="nCob">0</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="equipe">Equipe<span class="n" id="nEqp">0</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="memoria">Memória<span class="n" id="nMem">0</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="agenda">Agenda</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="comarcas">Comarcas<span class="n" id="nCom">0</span></button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="s-triagem">
+    <div class="bar">
+      <label for="fDataIni">Data inicial</label>
+      <input type="date" id="fDataIni">
+      <label for="fDataFim">Data final</label>
+      <input type="date" id="fDataFim">
+      <label for="fRegiao">Região</label>
+      <select id="fRegiao">
+        <option value="NE" selected>Minha (fora do Sudeste e da trabalhista)</option>
+        <option value="SE">Sudeste (Louis)</option>
+        <option value="TRAB">Trabalhista (TRT)</option>
+        <option value="TODAS">Todas</option>
+      </select>
+      <label for="fBusca">Busca</label>
+      <input type="search" id="fBusca" placeholder="processo, comarca, texto…" style="flex:1;min-width:150px">
+      <button class="btn btn-primary" id="btnBuscar">Carregar período</button>
+      <button class="btn" id="btnIA" title="Classifica as publicações sem sugestão usando a memória do escritório">Sugerir com IA</button>
+      <button class="btn" id="btnAtrasadas" title="Varre os dias guardados e mostra o que ficou sem prazo lançado em dias anteriores">Ficou algo para trás?</button>
+    </div>
+    <div id="atrasadasBox"></div>
+    <div id="triagemBox"></div>
+  </section>
+
+  <section id="s-prazos" hidden>
+    <div class="bar">
+      <label for="pStatus">Status</label>
+      <!-- "Todos" é o padrão desde 16/11/2026, a pedido dela: "pq ai eu sei oq foi
+           cumprido ou não". Com os prazos agrupados por responsável, abrir só em
+           "Em aberto" escondia o que a pessoa já entregou e a contagem do bloco
+           parecia a carga inteira dela. Fica em primeiro na lista por ser o padrão. -->
+      <select id="pStatus">
+        <option value="todos" selected>Todos</option>
+        <option value="abertos">Em aberto</option>
+        <option value="a_enviar">A enviar</option>
+        <option value="pendente">Sem resposta</option>
+        <option value="ok">Confirmados</option>
+        <option value="eu">Já tratados (eu)</option>
+        <option value="sem_prov">Sem providência</option>
+        <option value="entregue">Entregues</option>
+      </select>
+      <label for="pAdv">Advogado</label>
+      <select id="pAdv"><option value="">Todos</option></select>
+      <input id="pBusca" placeholder="Buscar por processo ou nome da parte…" style="min-width:250px">
+      <button class="btn" id="btnExport">Copiar resumo</button>
+    </div>
+    <div id="prazosBox"></div>
+  </section>
+
+  <section id="s-cobranca" hidden>
+    <div class="bar">
+      <button class="btn btn-primary" id="btnConferir" hidden title="Abre cada conversa no Gmail: marca OK quem respondeu e dá baixa em quem disse que já cumpriu">Conferir respostas</button>
+      <span style="font-size:12px;color:var(--fg-muted)">Quem ainda não devolveu o OK — em cima o que você distribuiu e ainda não enviou, embaixo quem está devendo resposta.</span>
+    </div>
+    <div id="cobrancaBox"></div>
+  </section>
+
+  <section id="s-equipe" hidden>
+    <div class="bar">
+      <button class="btn btn-primary" id="btnNovoAdv">Cadastrar advogado</button>
+      <span style="font-size:12px;color:var(--fg-muted)">A carga é o nº de prazos em aberto (sem resposta + confirmados não entregues). Quem está sem e-mail aparece marcado.</span>
+    </div>
+    <div id="equipeBox"></div>
+  </section>
+
+  <section id="s-memoria" hidden>
+    <div class="bar">
+      <button class="btn btn-primary" id="btnNovaTese">Nova tese</button>
+      <span style="font-size:12px;color:var(--fg-muted)">Cada tese ensina o painel a reconhecer um tipo de publicação e sugerir a providência.</span>
+    </div>
+    <div id="memoriaBox"></div>
+  </section>
+
+  <section id="s-agenda" hidden>
+    <div class="bar">
+      <button class="btn btn-sm" id="mPrev">◀</button>
+      <b id="mLabel" style="font-family:var(--font-display);font-size:15px;min-width:150px;text-align:center"></b>
+      <button class="btn btn-sm" id="mNext">▶</button>
+      <span style="font-size:12px;color:var(--fg-muted);margin-left:auto">Prazos fatais e audiências do mês.</span>
+    </div>
+    <div id="agendaBox"></div>
+  </section>
+
+  <!-- Cumpridos — pedido dela em 18/11/2026: "pra n ficar tumultuado na tela inicial, após 1 dia
+       poderia ir pra lá os já cumpridos". Prazo ENTREGUE some da aba Prazos no dia seguinte à
+       entrega e passa a morar aqui. Nada é apagado. -->
+  <section id="s-cumpridos" hidden>
+    <div class="bar">
+      <input id="cmBusca" placeholder="Buscar por processo, parte ou responsável…" style="min-width:280px">
+      <span style="font-size:12px;color:var(--fg-muted);margin-left:auto">Fechados há mais de 1 dia: entregues, tratados por você e sem providência. Os de hoje continuam na aba Prazos.</span>
+    </div>
+    <div id="cumpridosBox"></div>
+  </section>
+
+  <section id="s-comarcas" hidden>
+    <div class="bar">
+      <input id="cBusca" class="inp" placeholder="Comarca, vara ou e-mail" style="max-width:260px">
+      <select id="cSit" class="inp" style="max-width:190px">
+        <option value="">Todas as situações</option>
+        <option value="aceita">Aceita virtual</option>
+        <option value="nao_aceita">Não aceita</option>
+        <option value="depende">Depende / peticionar</option>
+      </select>
+      <span style="font-size:12px;color:var(--fg-muted);margin-left:auto">
+        O que cada vara respondeu ao pedido de participação virtual.</span>
+    </div>
+    <div id="comarcasBox"></div>
+  </section>
+
+</main>
+
+<div class="ov" id="ov" hidden><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+"use strict";
+/* ============================================================
+   Controladoria de Prazos — Lucchesi Dolabela
+   Fontes: DJEN (Comunica PJe, API pública do CNJ) + banco do painel.
+   ============================================================ */
+
+const OAB = {numero:"124826", uf:"MG", nome:"LOUIS AUGUSTO DOLABELA IRRTHUM"};
+const DJEN = "https://comunicaapi.pje.jus.br/api/v1/comunicacao";
+
+/* ---- diagnóstico, mantido como sentinela ----
+   Foi este detector que resolveu o caso em 13/11/2026: o painel dizia só
+   "Failed to fetch" e eu cheguei a culpar a internet dela, errado. O evento
+   `securitypolicyviolation` mostrou a causa real — `connect-src` barrando o
+   comunicaapi a partir de …frame.claudeusercontent.com. Hoje o painel nem tenta
+   mais chamar o DJEN (lê do banco), mas o detector fica: se algum dia outra
+   chamada externa for barrada, a tela diz o motivo em vez de chutar. */
+let CSP_BLOQUEIO = null;
+try{
+  document.addEventListener("securitypolicyviolation", ev=>{
+    const uri = String(ev.blockedURI||"");
+    if(uri.includes("jus.br") || /connect-src/i.test(ev.violatedDirective||""))
+      CSP_BLOQUEIO = {uri, regra:ev.violatedDirective||"", efetiva:ev.effectiveDirective||""};
+  });
+}catch(_){}
+
+/** Linha técnica curta para ela printar e me mandar quando der erro. */
+function diagnosticoDJEN(){
+  const p = [];
+  try{ p.push("origem "+(location.origin==="null"||!location.origin?"nula":location.origin)); }catch(_){}
+  p.push(navigator.onLine===false ? "navegador offline" : "navegador online");
+  if(CSP_BLOQUEIO) p.push("bloqueio CSP: "+(CSP_BLOQUEIO.efetiva||CSP_BLOQUEIO.regra||"connect-src"));
+  return p.join(" · ");
+}
+
+/* --- regiões por tribunal ---
+   TRF5 é inteiro do Nordeste (PE, AL, SE, RN, PB, CE) e TRF6 é só Minas Gerais,
+   então nesses a sigla do tribunal já decide. O TRF1 NÃO: ele atende 13 estados,
+   da Bahia ao Acre, e só o nome do órgão diz de qual. Ver `regiaoDe` abaixo. */
+/* Nordeste dela: os NOVE tribunais estaduais + a justiça federal.
+   ⚠️ SEM os TRT. Decisão dela em 13/11/2026: *"os tjs e os federais entram"* —
+   trabalhista não é controlada por ela. Os TRT não somem do painel: caem em
+   "OUTRA" e aparecem no filtro "Todas". Não recoloque sem ela pedir. */
+const NE = ["TJBA","TJSE","TJAL","TJPE","TJPB","TJRN","TJCE","TJPI","TJMA","TRF5"];
+const SE = ["TJMG","TJSP","TJRJ","TJES","TRF2","TRF3","TRF6",
+            "TRT1","TRT2","TRT3","TRT15","TRT17"];
+
+/* Tribunais que atendem mais de uma região: a sigla não decide, o órgão decide. */
+const MISTOS = new Set(["TRF1"]);
+
+const UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
+             "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"];
+const UF_NE = new Set(["BA","SE","AL","PE","PB","RN","CE","PI","MA"]);
+const UF_SE = new Set(["MG","SP","RJ","ES"]);
+const UF_NOME = {"bahia":"BA","sergipe":"SE","alagoas":"AL","pernambuco":"PE",
+  "paraíba":"PB","paraiba":"PB","rio grande do norte":"RN","ceará":"CE","ceara":"CE",
+  "piauí":"PI","piaui":"PI","maranhão":"MA","maranhao":"MA","minas gerais":"MG",
+  "são paulo":"SP","sao paulo":"SP","rio de janeiro":"RJ",
+  "espírito santo":"ES","espirito santo":"ES"};
+
+/* --- Tribunais superiores: a sigla não diz NADA sobre o estado -------------
+   STJ e STF julgam recurso de processo que veio de qualquer lugar do país, e
+   o nome do órgão é sempre o da secretaria deles ("COORDENADORIA DE
+   CLASSIFICAÇÃO E DISTRIBUIÇÃO DE PROCESSOS"), nunca o da origem. Quem diz a
+   origem é o NÚMERO do processo: no padrão do CNJ o trecho ".8.NN." é a
+   justiça estadual NN.
+
+   ⚠️ A tabela abaixo NÃO foi escrita de memória. Cada linha foi conferida em
+   publicações reais do DJEN (538 delas, 02 a 06/11/2026), casando a sigla que
+   o próprio DJEN mandou com o código do número do processo. Os NOVE estados do
+   Nordeste apareceram todos. Para acrescentar um código novo, confira do mesmo
+   jeito — em dado real — em vez de deduzir.
+
+   Só vale para o segmento 8 (justiça estadual). No federal o código é a
+   REGIÃO, não o estado, e nem é estável: processos de Minas anteriores a 2022
+   ainda vêm como 4.01 (TRF1) embora hoje sejam do TRF6. */
+const SUPERIORES = new Set(["STJ","STF"]);
+const UF_POR_CODIGO = {
+  "02":"AL","05":"BA","06":"CE","10":"MA","15":"PB","17":"PE","18":"PI","20":"RN","25":"SE",
+  "08":"ES","09":"GO","12":"MS","13":"MG","16":"PR","19":"RJ","26":"SP"
+};
+
+/** UF de origem pelo número do processo (só justiça estadual), ou "". */
+function ufDoProcesso(processo){
+  const m = String(processo||"").replace(/\D/g,"").match(/^\d{13}8(\d{2})/);
+  return m ? (UF_POR_CODIGO[m[1]] || "") : "";
+}
+
+/** UF citada no nome do órgão de um tribunal federal, ou "" se não der para dizer.
+    Quatro formatos, conferidos em publicações REAIS do TRF1 e do TRF5 em 13/11/2026:
+      "SSJ de Vitória da Conquista-BA"   → hífen + UF
+      "19ª Vara Federal PE"              → espaço + UF
+      "...Juizado Especial Cível da SJBA" → seção judiciária colada na UF
+      "3ª Turma Recursal da Bahia"       → estado por extenso
+    Só é chamada para os tribunais de `MISTOS`, onde a sigla não basta. */
+function ufDoOrgao(orgao){
+  const O = String(orgao||"").toUpperCase();
+  const m = O.match(new RegExp("(?:^|[\\s\\-\\/(])("+UFS.join("|")+")(?=$|[\\s\\-\\/).,])"));
+  if(m) return m[1];
+  const s = O.match(new RegExp("\\bS{1,2}J\\s?("+UFS.join("|")+")\\b"));
+  if(s) return s[1];
+  const n = String(orgao||"").toLowerCase();
+  for(const chave in UF_NOME) if(n.includes(chave)) return UF_NOME[chave];
+  return "";
+}
+
+/** Região da publicação. Nos tribunais mistos olha a UF do órgão; se nem assim
+    der para dizer, joga no Nordeste DE PROPÓSITO: ver um caso a mais custa um
+    clique, deixar de ver um prazo custa o prazo. O painel marca esse chute. */
+function regiaoDe(tribunal, orgao, processo){
+  /* Trabalhista não é dela (13/11/2026: "os tjs e os federais entram"), e os TRT do
+     Nordeste vinham caindo em "OUTRA" — que a visão "Minha" passou a mostrar em
+     18/11/2026. Pedido dela no mesmo dia: "tira trt". Região própria, fora da visão
+     dela; continua nos filtros "Trabalhista (TRT)" e "Todas" — nada some do painel.
+     Os TRT que estão em `SE` são do Louis e seguem como Sudeste. */
+  if(/^TRT\d+$/.test(String(tribunal||"")) && !SE.includes(String(tribunal||""))) return "TRAB";
+  const t = String(tribunal||"");
+  if(SUPERIORES.has(t)){
+    const uf = ufDoProcesso(processo);
+    if(UF_NE.has(uf)) return "NE";
+    if(UF_SE.has(uf)) return "SE";
+    return uf ? "OUTRA" : "NE";
+  }
+  if(MISTOS.has(t)){
+    const uf = ufDoOrgao(orgao);
+    if(UF_NE.has(uf)) return "NE";
+    if(UF_SE.has(uf)) return "SE";
+    return uf ? "OUTRA" : "NE";
+  }
+  return NE.includes(t) ? "NE" : (SE.includes(t) ? "SE" : "OUTRA");
+}
+
+/** Verdadeiro quando a região foi chute — vira um aviso na tela da triagem. */
+const regiaoIncerta = (tribunal, orgao, processo) =>
+  (MISTOS.has(String(tribunal||""))     && !ufDoOrgao(orgao))
+  || (SUPERIORES.has(String(tribunal||"")) && !ufDoProcesso(processo));
+
+/* --- feriados nacionais + recesso forense (CPC 220) ---
+   ⚠️ 20 de novembro (Consciência Negra) é FERIADO NACIONAL desde a Lei 14.759/2023 e
+   FALTAVA nesta lista. Achado em 17/11/2026, três dias antes de cair. Sem ele a sexta
+   20/11 contava como dia útil e o fatal saía UM DIA MAIS CEDO do que o real — erra para
+   o lado seguro, mas erra. Confira a lista no começo de cada ano. */
+const FERIADOS = new Set([
+ "2026-01-01","2026-02-16","2026-02-17","2026-04-03","2026-04-21","2026-05-01",
+ "2026-06-04","2026-09-07","2026-10-12","2026-11-02","2026-11-15","2026-11-20",
+ "2026-12-25",
+ "2027-01-01","2027-02-08","2027-02-09","2027-03-26","2027-04-21","2027-05-01",
+ "2027-05-27","2027-09-07","2027-10-12","2027-11-02","2027-11-15","2027-11-20",
+ "2027-12-25"]);
+const noRecesso = iso => { const [,m,d] = iso.split("-").map(Number);
+  return (m===12 && d>=20) || (m===1 && d<=20); };
+const ehUtil = iso => { const dt = new Date(iso+"T12:00:00");
+  const w = dt.getDay();
+  return w!==0 && w!==6 && !FERIADOS.has(iso) && !noRecesso(iso); };
+const addDias = (iso,n) => { const dt=new Date(iso+"T12:00:00");
+  dt.setDate(dt.getDate()+n); return iso8(dt); };
+const iso8 = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const proxUtil = iso => { let d=iso; let g=0; while(!ehUtil(d) && g++<120) d=addDias(d,1); return d; };
+
+/**
+ * Prazo processual estimado.
+ * CPC 224: publicação = 1º dia útil após a disponibilização;
+ * a contagem começa no 1º dia útil seguinte à publicação e corre em dias úteis (CPC 219).
+ * É ESTIMATIVA: não considera suspensões locais, prazo em dobro nem feriados forenses estaduais.
+ */
+function calcPrazo(dataDisp, dias){
+  if(!dataDisp || !dias) return null;
+  const publicacao = proxUtil(addDias(dataDisp,1));
+  let cur = proxUtil(addDias(publicacao,1));
+  const inicio = cur;
+  for(let i=1;i<dias;i++){ cur = proxUtil(addDias(cur,1)); }
+  return {publicacao, inicio, fatal:cur};
+}
+const diasUteisAte = iso => { if(!iso) return null;
+  const hoje=iso8(new Date()); if(iso<hoje) return -1;
+  let n=0,c=hoje,g=0; while(c<iso && g++<400){ c=addDias(c,1); if(ehUtil(c)) n++; } return n; };
+
+/** Dias úteis JÁ DECORRIDOS desde uma data — quanto tempo o e-mail está sem resposta. */
+const diasUteisDesde = iso => { if(!iso) return null;
+  const d=String(iso).slice(0,10), hoje=iso8(new Date());
+  if(d>=hoje) return 0;
+  let n=0,c=d,g=0; while(c<hoje && g++<400){ c=addDias(c,1); if(ehUtil(c)) n++; } return n; };
+
+/** A partir de quantos dias úteis de espera o prazo entra na fila de cobrança. */
+const COBRAR_APOS = 2;
+
+/* Status que FECHAM o prazo — não entram em "em aberto", nem na carga de ninguém,
+   nem na agenda, nem nas filas de cobrança.
+   `eu` = ela mesma tratou (suspensão que ela lança no sistema interno, por exemplo):
+   não foi repassado a ninguém, mas também não está pendente. Sem isso, tudo que ela
+   resolve sozinha ficaria parecendo esquecido na conferência do fim do dia. */
+const FECHADO = new Set(["entregue","eu","sem_prov"]);
+
+/**
+ * Período que o painel abre sozinho, para ela já começar a trabalhar.
+ * Em dia normal é só hoje. Depois de feriado ou fim de semana, o início recua
+ * até o primeiro dia que ela não trabalhou — assim o acumulado vem junto e
+ * nada fica para trás sem ela ter pedido.
+ *   terça (segunda foi útil)      → 1 dia:  terça a terça
+ *   segunda (sáb/dom no meio)     → sábado a segunda
+ *   volta de feriado quinta+sexta → quinta a segunda
+ */
+function periodoPadrao(){
+  const hoje = iso8(new Date());
+  let d = addDias(hoje,-1), g = 0;
+  while(!ehUtil(d) && g++ < 30) d = addDias(d,-1);   // último dia útil ANTES de hoje
+  const ini = addDias(d,1);
+  return {ini: ini > hoje ? hoje : ini, fim: hoje};
+}
+
+/* ============================================================
+   MOTOR DE CLASSIFICAÇÃO — regras base do escritório
+   Cada regra: gatilhos (regex no texto) → providência + prazo legal.
+   A memória (coleção "teses") se soma a estas e tem prioridade.
+   ============================================================ */
+/* Ordem = precedência. As regras ESPECÍFICAS vêm primeiro: um acórdão de apelação
+   quase sempre cita a palavra "sentença", então "sentença" genérica só pode agir
+   depois que apelação, agravo, embargos e cumprimento já tiveram sua chance. */
+const REGRAS = [
+ {id:"audiencia",     rotulo:"Audiência designada",       dias:0,  prov:"Pauta: confirmar modalidade, link e preposto",            re:/audi[êe]ncia\s+(de\s+)?(concilia|instru|julgamento|una|designad)|designo\s+audi[êe]ncia|redesignad/i},
+ {id:"provas",        rotulo:"Especificação de provas",   dias:5,  prov:"Especificar provas",                                      re:/especifi\w*\s+(as\s+)?provas|provas\s+que\s+pretend|especifica[çc][ãa]o\s+de\s+provas/i},
+ {id:"laudo",         rotulo:"Laudo pericial",            dias:15, prov:"Conferir laudo — avaliar impugnação",                     re:/laudo\s+(pericial|m[ée]dico|cont[áa]bil)|\blaudo\b|per[íi]cia\s+(realizada|conclu[íi]da)|manifest\w*.{0,25}laudo/i},
+ {id:"embargos",      rotulo:"Embargos de declaração",    dias:5,  prov:"Avaliar embargos de declaração",                          re:/embargos\s+de\s+declara[çc][ãa]o|embargos\s+declarat/i},
+ {id:"agravo",        rotulo:"Agravo",                    dias:15, prov:"Avaliar agravo / contraminuta",                           re:/agravo\s+(de\s+instrumento|interno|regimental)|contraminuta/i},
+ {id:"apelacao",      rotulo:"Apelação / Contrarrazões",  dias:15, prov:"Elaborar contrarrazões de apelação",                      re:/apela[çc][ãa]o|contrarraz[õo]es|raz[õo]es\s+recursais/i},
+ {id:"cumprimento",   rotulo:"Cumprimento de sentença",   dias:15, prov:"Impugnar cálculo / cumprimento de sentença",              re:/cumprimento\s+de\s+senten[çc]a|impugna[çc][ãa]o\s+ao\s+cumprimento|intimad[oa].{0,40}pagar/i},
+ {id:"suspensao",     rotulo:"Suspensão",                 dias:0,  prov:"Sem prazo — apenas lançar andamento",                     re:/suspens[ãa]o\s+do\s+(feito|processo|prazo)|sobresta|suspend\w+\s+o\s+(feito|processo)/i},
+ {id:"arquivamento",  rotulo:"Arquivamento / Baixa",      dias:0,  prov:"Sem prazo — lançar baixa",                                re:/arquive[-\s]?se|arquivamento\s+(defin|do)|baixa\s+definitiva|tr[âa]nsito\s+em\s+julgado/i},
+ /* As duas sentenças com desfecho conhecido vêm ANTES da genérica, porque a
+    providência é oposta. O `\b` antes de "proced" é o que impede de casar com
+    "IMprocedente" — sem ele, a regra pegaria exatamente o contrário.
+    PROCEDENTE primeiro: numa sentença que julga procedente em parte E extingue o
+    resto, o que manda é o recurso. O "totalmente/parcialmente" opcional cobre um
+    buraco antigo — "julgo totalmente improcedente" não casava com regra nenhuma. */
+ {id:"sentenca_proc", rotulo:"Sentença procedente",        dias:15, prov:"Gentileza recorrer e tirar a guia",                        re:/julgo\s+(?:totalmente\s+|parcialmente\s+)?\bprocedent|julgad[oa]s?\s+(?:totalmente\s+|parcialmente\s+)?\bprocedent|parcialmente\s+\bprocedent|\bprocedente\s+em\s+parte|senten[çc]a\s+de\s+\bproced[êe]ncia/i},
+ {id:"sentenca_improc",rotulo:"Sentença improcedente / extinção", dias:0, prov:"Sem prazo — apenas sinalizar o Louis",                 re:/julgo\s+(?:totalmente\s+|parcialmente\s+)?\bimprocedent|julgad[oa]s?\s+(?:totalmente\s+|parcialmente\s+)?\bimprocedent|\bimprocedentes?\s+os?\s+pedid|senten[çc]a\s+de\s+\bimproced|julgo\s+extint|extinto\s+o\s+(?:feito|processo)|extin[çc][ãa]o\s+d[oa]\s+(?:feito|processo|a[çc][ãa]o)/i},
+ {id:"sentenca",      rotulo:"Sentença",                  dias:15, prov:"Analisar sentença — verificar cabimento de apelação",     re:/julgo\s+(proce|improce|parcial|extint)|senten[çc]a\s+de\s+(proced|improced|extin)|publicada\s+a\s+senten[çc]a|prolatada\s+a?\s*senten[çc]a|extin[çc][ãa]o\s+(do\s+)?(feito|processo)\s+(com|sem)\s+resolu/i},
+ {id:"certidao",      rotulo:"Certidão",                  dias:0,  prov:"Verificar no sistema o que a certidão comunica",           re:/certid[ãa]o/i},
+ {id:"despacho",      rotulo:"Despacho / Intimação",      dias:5,  prov:"Gentileza verificar providências",                           re:/intime-?se|manifeste-?se|cumpra-?se|no\s+prazo\s+de\s+\d+\s+\(?\w*\)?\s*dias/i}
+];
+const SEM_PRAZO = new Set(["suspensao","certidao","arquivamento","audiencia","sentenca_improc"]);
+
+/* Prazo de recurso contra sentença, regra dela (13/11/2026):
+   cível 15 dias úteis, JUIZADO 10. Quem decide é o órgão/classe, não o texto —
+   "Juizado Especial Cível e Criminal da Comarca de Lagarto", "5ª VSJE DO
+   CONSUMIDOR", "JEF", "Turma Recursal" (que é a instância recursal do juizado).
+   NÃO olho o corpo da publicação: um processo cível pode citar "juizado" de
+   passagem e o prazo sairia errado. */
+const ehJuizado = (orgao, classe) =>
+  /juizado|\bJEF\b|\bVSJE\b|\bJESP\b|turma\s+recursal/i.test(String(orgao||"")+" "+String(classe||""));
+
+/** Aplica os 15/10 dias só às sentenças com prazo. Improcedente e extinção
+    ficam em 0: ela só sinaliza o Louis, não há o que recorrer. */
+function diasDaSentenca(cls, orgao, classe){
+  if(cls.regraId!=="sentenca" && cls.regraId!=="sentenca_proc") return cls.dias;
+  return ehJuizado(orgao, classe) ? 10 : 15;
+}
+
+/* O DJEN manda o texto com códigos de HTML — "C&Iacute;VEL" em vez de "CÍVEL",
+   e também &ordm;, &Atilde;, &eacute;… Trocar só &nbsp; e &amp; na mão deixava o
+   resto cru na tela e dentro do e-mail que ela manda para o advogado.
+   A textarea decodifica TODOS: seu conteúdo é lido como texto puro, nenhum
+   elemento é criado, e o resultado passa por esc() antes de virar HTML. */
+function limpar(html){
+  const semTags = String(html||"").replace(/<br\s*\/?>/gi," ").replace(/<[^>]+>/g," ");
+  let t = semTags;
+  try{ const ta = document.createElement("textarea"); ta.innerHTML = semTags; t = ta.value; }
+  catch(_){ t = semTags.replace(/&nbsp;/g," ").replace(/&amp;/g,"&"); }
+  return t.replace(/\s+/g," ").trim();
+}
+
+/** Classifica por regras + memória. Retorna a melhor aposta com origem. */
+function classificar(texto, teses){
+  const t = limpar(texto);
+  for(const te of (teses||[])){
+    if(!te.gatilhos || !te.gatilhos.length) continue;
+    const hit = te.gatilhos.some(g => g && t.toLowerCase().includes(String(g).toLowerCase()));
+    if(hit) return {rotulo:te.rotulo, prov:te.providencia, dias:Number(te.prazo_dias)||0,
+                    teseId:te.id, origem:"memoria", conf:"alta"};
+  }
+  for(const r of REGRAS){
+    if(r.re.test(t)) return {rotulo:r.rotulo, prov:r.prov, dias:r.dias,
+                             teseId:null, origem:"regra", conf:SEM_PRAZO.has(r.id)?"alta":"media", regraId:r.id};
+  }
+  /* Sem classificação, a providência padrão é a dela — pedido de 16/11/2026.
+     Melhor chegar com o texto que ela usaria do que com o campo vazio.
+     `dias: 0` continua: não sabemos o prazo, e chutar data fatal seria pior
+     do que não ter nenhuma. */
+  return {rotulo:"Não classificada", prov:"Gentileza verificar providências",
+          dias:0, teseId:null, origem:"nenhuma", conf:"baixa"};
+}
+/** Prazo declarado no próprio texto ("no prazo de 15 dias") vence a regra. */
+function prazoNoTexto(texto){
+  const m = limpar(texto).match(/prazo\s+(?:comum\s+|sucessivo\s+)?de\s+(\d{1,3})\s*\(?[^)]{0,18}\)?\s*dias/i);
+  return m ? Number(m[1]) : null;
+}
+
+/* ============================================================
+   APRENDIZADO PELO USO — as providências que ela realmente manda
+   Cada prazo distribuído guarda a providência que ela escreveu. Daí em diante,
+   publicação do MESMO rótulo já chega com o texto que ela costuma usar, no
+   lugar do texto padrão da regra. Não inventa nada: só repete o que ela mandou.
+   Prioridade: sugestão da IA > tese salva > isto > regra padrão.
+   ============================================================ */
+function providenciaAprendida(rotulo){
+  if(!rotulo || rotulo==="Não classificada") return null;
+  const usos = new Map();
+  for(const p of S.prazos){
+    if(p.rotulo !== rotulo) continue;
+    const t = String(p.providencia||"").trim();
+    if(!t) continue;
+    const a = usos.get(t) || {vezes:0, quando:""};
+    a.vezes++;
+    const d = String(p.distribuido_em||"");
+    if(d > a.quando) a.quando = d;
+    usos.set(t, a);
+  }
+  if(!usos.size) return null;
+  // a mais usada; empate decide pela mais recente, que é a prática atual dela
+  const [texto, info] = [...usos.entries()].sort((a,b)=>
+    b[1].vezes - a[1].vezes || b[1].quando.localeCompare(a[1].quando))[0];
+  return {texto, vezes:info.vezes};
+}
+
+/**
+ * Quem já cuida deste processo. Pedido dela: "identificar casos que já foram
+ * distribuídos para concentrar os prazos para essa pessoa" — quem conhece o caso
+ * resolve mais rápido e não há dois advogados mexendo no mesmo processo.
+ * Casa pelo número só com dígitos, porque o DJEN manda ora com máscara ora sem.
+ */
+function jaDistribuido(processo, processoRaw){
+  const chave = soDigitos(processoRaw || processo);
+  if(chave.length < 15) return null;        // número CNJ tem 20 dígitos; abaixo disso não dá para confiar
+  const meus = S.prazos.filter(p => soDigitos(p.processo_raw || p.processo) === chave);
+  if(!meus.length) return null;
+  const porAdv = new Map();
+  for(const p of meus){
+    if(!p.advogado_id) continue;
+    const a = porAdv.get(p.advogado_id) || {vezes:0, quando:"", nome:p.advogado_nome||""};
+    a.vezes++;
+    const d = String(p.distribuido_em||"");
+    if(d > a.quando){ a.quando = d; a.nome = p.advogado_nome || a.nome; }
+    porAdv.set(p.advogado_id, a);
+  }
+  if(!porAdv.size) return null;
+  // quem mais pegou o processo; empate decide pelo mais recente
+  const [advId, info] = [...porAdv.entries()].sort((a,b)=>
+    b[1].vezes - a[1].vezes || b[1].quando.localeCompare(a[1].quando))[0];
+  const adv = S.advs.find(x=>x.id===advId);
+  return {advId, nome:(adv ? adv.nome : info.nome) || "—", vezes:info.vezes, total:meus.length};
+}
+
+/** Tudo o que o painel já aprendeu, para ela conferir na aba Memória. */
+function tudoAprendido(){
+  return [...new Set(S.prazos.map(p=>p.rotulo).filter(Boolean))]
+    .map(r=>{ const a = providenciaAprendida(r);
+      return a ? {rotulo:r, texto:a.texto, vezes:a.vezes,
+                  total:S.prazos.filter(p=>p.rotulo===r).length} : null; })
+    .filter(Boolean)
+    .sort((a,b)=>b.vezes-a.vezes || a.rotulo.localeCompare(b.rotulo));
+}
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+const S = {db:null, user:null, sample:null, mcp:null, canWrite:true,
+           pubs:[], prazos:[], advs:[], teses:[], comarcas:[], sugestoes:{},
+           periodo:{ini:"",fim:""}, truncado:0, faltando:null, semDados:[], atualizadoEm:"",
+           /* Destino do botão "Enviar para mim (teste)". O certo é vir da capacidade
+              `user` (user.me().email), mas em 13/11/2026 esse campo voltou VAZIO no
+              painel dela — a organização pode não liberá-lo — e o botão sumia.
+              Este endereço não é deduzido: é a conta que assina os e-mails do
+              escritório, lida do Gmail dela. A capacidade sobrescreve quando funciona. */
+           euEmail:"luciana.rovesse@lucchesidolabela.com.br",
+           eventos:[], calEstado:"indisponivel", calErro:null, calUnsub:null,
+           tab:"triagem", mes:new Date(), carregando:false};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const brDate = iso => iso ? iso.split("-").reverse().join("/") : "—";
+let toastT;
+function toast(msg, ms=2600){ const el=$("#toast"); el.textContent=msg; el.hidden=false;
+  clearTimeout(toastT); toastT=setTimeout(()=>el.hidden=true, ms); }
+
+/* ============================================================
+   PUBLICAÇÕES — vêm do BANCO, não do DJEN direto
+
+   ⚠️ O painel NÃO consegue chamar o DJEN. Medido em 13/11/2026: o artefato roda
+   em …frame.claudeusercontent.com, cuja política de segurança (CSP `connect-src`)
+   proíbe a página de abrir conexão com qualquer site de fora. O erro aparecia só
+   como "Failed to fetch", sem motivo, e o detector de CSP confirmou a causa.
+   A API do CNJ está no ar e responde normalmente de fora da página — testada do
+   PowerShell, de uma página https comum e de um iframe sandbox de origem nula.
+
+   Quem fala com o DJEN é a rotina das 4h da manhã (e o Claude, quando ela pede),
+   gravando UM documento por dia em `publicacoes`: {data, total, trazido,
+   buscado_em, itens:[…]}. Um doc por dia em vez de um por publicação mantém o
+   banco em ~15 documentos em vez de ~2.000 por mês.
+
+   NÃO volte a chamar o DJEN com `fetch` daqui. É bloqueado, e falha mudo.
+   ============================================================ */
+
+/** Lê o documento de um dia. Devolve null quando aquele dia nunca foi buscado
+    (diferente de um dia buscado e sem publicações, que vem com itens vazio). */
+/* Um dia inteiro não cabe num documento só: o banco limita cada um a 256 KB e um
+   dia do DJEN dá ~300 KB com o teor completo das publicações. Então o documento
+   do dia guarda só o cabeçalho e diz em quantos PEDAÇOS os itens estão, numa
+   subcoleção `publicacoes/<data>/itens`. Dias sem publicação continuam com
+   `itens` vazio no próprio documento — por isso os dois formatos são aceitos. */
+async function lerDia(data){
+  try{
+    const snap = await S.db.collection("publicacoes").doc(data).get();
+    if(!snap || snap.exists === false) return null;
+    const d = (typeof snap.data === "function") ? snap.data() : snap;
+    if(!d) return null;
+    if(Array.isArray(d.itens)) return d;              // tudo num documento só
+    if(!d.chunks) return {...d, itens:[]};            // dia buscado, sem publicação
+    const partes = await S.db.collection("publicacoes/"+data+"/itens").get();
+    const docs = (partes && partes.docs) ? partes.docs : [];
+    const itens = docs
+      .map(x => (typeof x.data === "function") ? x.data() : x)
+      .filter(Boolean)
+      .sort((a,b) => (Number(a.parte)||0) - (Number(b.parte)||0))
+      .reduce((acc,x) => acc.concat(x.itens||[]), []);
+    return {...d, itens};
+  }catch(_){ return null; }
+}
+
+/** Junta os dias do período. `semDados` são os dias que ninguém buscou ainda —
+    é a diferença entre "não tem publicação" e "não olhei", e ela precisa saber. */
+async function carregarPeriodo(ini, fim){
+  if(!S.db) throw new Error("O banco do painel não está disponível nesta visualização. Abra o painel pelo Claude.");
+  const dias = [];
+  for(let d=ini; d<=fim && dias.length<90; d=addDias(d,1)) dias.push(d);
+  const itens=[], semDados=[];
+  let total=0, atualizadoEm="";
+  for(const dia of dias){
+    const doc = await lerDia(dia);
+    if(!doc){ semDados.push(dia); continue; }
+    /* Um documento de dia pode guardar item de OUTRA data: o clipping do webjur
+       traz o mesmo ato em dois cadernos — o do DJEN e o do diário do próprio
+       tribunal — com disponibilizações diferentes. Vale a data do ITEM, não a do
+       documento; e o que for de fora do período não conta no total, senão o
+       painel acusaria "lista incompleta" sem motivo. */
+    const brutos = doc.itens || [];
+    const doPeriodo = brutos.filter(x=>{
+      const d = String(x.data||"").slice(0,10);
+      return !d || (d >= ini && d <= fim);
+    });
+    total += (Number(doc.total)||0) - (brutos.length - doPeriodo.length);
+    itens.push(...doPeriodo);
+    const b = String(doc.buscado_em||"");
+    if(b > atualizadoEm) atualizadoEm = b;
+  }
+  return {itens, total, semDados, atualizadoEm};
+}
+
+/** O botão diz o período que vai abrir. Mudar as datas NÃO carrega sozinha:
+    num intervalo ela mexe nos dois campos, e não faz sentido recarregar no meio. */
+function atualizarBotaoBusca(){
+  if(S.carregando) return;
+  const ini=$("#fDataIni").value, fim=$("#fDataFim").value;
+  $("#btnBuscar").textContent =
+      (!ini && !fim)              ? "Carregar período"
+    : (!ini || !fim || ini===fim) ? "Carregar "+brDate(ini||fim)
+    : (ini<fim ? "Carregar "+brDate(ini)+" a "+brDate(fim)
+               : "Carregar "+brDate(fim)+" a "+brDate(ini));
+}
+
+async function carregarTriagem(){
+  if(S.carregando) return;
+  let ini = $("#fDataIni").value, fim = $("#fDataFim").value;
+  if(!ini && !fim){ toast("Escolha pelo menos uma data."); return; }
+  if(!ini) ini = fim;
+  if(!fim) fim = ini;
+  if(ini > fim){                          // campos invertidos sem querer
+    const t = ini; ini = fim; fim = t;
+    $("#fDataIni").value = ini; $("#fDataFim").value = fim;
+    toast("A data inicial vinha depois da final — inverti as duas.");
+  }
+  S.carregando=true; S.periodo={ini, fim};
+  S.truncado=0; S.faltando=null; S.semDados=[];   // avisos são desta carga, não da anterior
+  const btn=$("#btnBuscar"); btn.disabled=true;
+  btn.innerHTML='<span class="spin"></span> Carregando…';
+  try{
+    const {itens, total, semDados, atualizadoEm} = await carregarPeriodo(ini, fim);
+    S.semDados = semDados;
+    S.atualizadoEm = atualizadoEm;
+    // O DJEN disse quantas existem no dia em que foi buscado. Se chegaram menos,
+    // ela PRECISA saber: uma publicação que não aparece é um prazo que ninguém vê.
+    S.faltando = (total && itens.length < total) ? {trouxe:itens.length, total} : null;
+    /* Aceita tanto o formato gravado no banco quanto o cru do DJEN — assim
+       nada quebra se um dia a rotina gravar direto a resposta da API. */
+    S.pubs = itens.map(x=>{
+      const texto    = limpar(x.texto);
+      const tribunal = x.tribunal || x.siglaTribunal || "";
+      const orgao    = x.orgao    || x.nomeOrgao    || "";
+      const classe   = x.classe   || x.nomeClasse   || "";
+      // Sempre com a máscara do CNJ, venha o número como vier — ver fmtProc.
+      const processo = fmtProc(x.processo, x.numeroprocessocommascara,
+                               x.numero_processo, x.processo_raw);
+      const c = classificar(texto, S.teses);
+      const diasTexto = prazoNoTexto(texto);
+      // prazo escrito no próprio texto vence tudo; senão, 15 no cível / 10 no juizado
+      const dias = diasTexto ?? diasDaSentenca(c, orgao, classe);
+      return {
+        id:String(x.id),
+        processo,
+        // só os dígitos, de qualquer campo que os traga: é a chave de casamento
+        processoRaw: soDigitos(x.processo_raw || x.numero_processo || x.processo),
+        tribunal, orgao,
+        tipo:  x.tipo  || x.tipoComunicacao || "",
+        classe,
+        data:  x.data  || x.data_disponibilizacao || "",
+        texto, link:x.link||"",
+        regiao:regiaoDe(tribunal, orgao, processo),
+        regiaoIncerta:regiaoIncerta(tribunal, orgao, processo),
+        /* Pré-processual (CEJUSC) é dela venha de quase qualquer estado — pedido de
+           16/11/2026: "às vezes vai aparecer esses casos de pré processual de
+           outras regiões". Sem isto, uma reclamação pré-processual de Santa
+           Catarina some do filtro do Nordeste e ninguém olha.
+           ⚠️ A exceção NÃO vale para o SUDESTE, que é do Louis — pedido dela em
+           17/11/2026: "mas se for do sudeste eu não quero receber". O filtro está
+           em pubsFiltradas; aqui só se marca o que é pré-processual. */
+        preProcessual: /pr[ée]\s*-?\s*processual/i.test(classe) || /cejusc/i.test(orgao),
+        // número da publicação no clipping do Louis, e de onde o dia veio
+        ordem: Number(x.ordem), fonte: x.fonte || "",
+        // parte contrária = destinatário no polo ATIVO, já separado na gravação
+        parteContraria: x.parte_contraria || "",
+        partes: Array.isArray(x.partes) ? x.partes.join(", ")
+              : (x.partes || (x.destinatarios||[]).map(d=>d.nome).join(", ")),
+        cls:{...c, dias, diasDoTexto:diasTexto!=null}
+      };
+    });
+    renderTriagem();
+    atualizarKPIs();
+    toast(S.pubs.length+" publicações"
+      +(ini===fim ? " de "+brDate(ini) : " de "+brDate(ini)+" a "+brDate(fim))
+      +(semDados.length ? " · "+semDados.length+" dia(s) ainda não buscado(s)" : "")+".", 3600);
+  }catch(e){
+    $("#triagemBox").innerHTML =
+      '<div class="empty"><h3>Não consegui abrir as publicações</h3>'
+      +'<p>'+esc(e.message)+'</p>'
+      +'<p class="mono" style="font-size:11px;color:var(--fg-faint)">'+esc(diagnosticoDJEN())+'</p>'
+      +'<div class="acts" style="justify-content:center;margin-top:14px">'
+      +'<button class="btn btn-primary" id="btnRetry">Tentar de novo</button></div></div>';
+    const b=$("#btnRetry"); if(b) b.onclick=carregarTriagem;
+  }finally{
+    S.carregando=false; btn.disabled=false; atualizarBotaoBusca();
+  }
+}
+
+/* ============================================================
+   RENDER — Triagem
+   ============================================================ */
+/* Cada TRT atende um estado fixo, mas a sigla é um NÚMERO — "TRT19" não diz
+   Alagoas a ninguém. Sem este mapa, as publicações trabalhistas ficavam num
+   bloco "TRT5, TRT6, TRT19…" no fim da lista, fora do estado delas.
+   Os nove do Nordeste primeiro; os do Sudeste vêm junto pelo mesmo motivo. */
+const UF_DO_TRT = {
+  TRT19:"AL", TRT5:"BA",  TRT7:"CE",  TRT16:"MA", TRT13:"PB",
+  TRT6:"PE",  TRT22:"PI", TRT21:"RN", TRT20:"SE",
+  TRT1:"RJ",  TRT2:"SP",  TRT15:"SP", TRT3:"MG",  TRT17:"ES"
+};
+
+/** Estado da publicação, para ordenar como ela lê o clipping: AL, BA, CE, MA,
+    PB, PE, PI, RN, SE. Três caminhos, porque a sigla do tribunal nem sempre diz:
+      TJBA                      → BA   (a sigla já traz a UF)
+      TRT19                     → AL   (número fixo por estado, pelo mapa)
+      "19ª Vara Federal PE"     → PE   (federal: a UF está no órgão)
+      "SSJ de Irecê-BA" (TRF1)  → BA   (idem, e o TRF1 cobre 13 estados) */
+function ufDaPublicacao(p){
+  const t = String(p.tribunal||"").toUpperCase();
+  const m = t.match(/^TJ([A-Z]{2})$/);
+  if(m) return m[1];
+  if(UF_DO_TRT[t]) return UF_DO_TRT[t];
+  if(/^TR[FT]/.test(t)){ const u = ufDoOrgao(p.orgao); if(u) return u; }
+  // STJ/STF: a secretaria deles não tem estado — quem diz é o número do processo
+  if(SUPERIORES.has(t)){ const u = ufDoProcesso(p.processo); if(u) return u; }
+  return t;
+}
+
+/* O MESMO ato chega uma vez por destinatário, com `id` diferente a cada vez.
+   Medido em 17/11/2026: dois processos do TJPE vieram CINCO vezes cada, texto
+   idêntico — 10 dos 32 cartões do Nordeste eram repetição. Pedido dela:
+   *"as repetidas não precisa colocar no painel todas"*.
+
+   🔴 O critério é o TEOR, NUNCA o número do processo. No mesmo dia, 7 dos 9
+   processos repetidos do dia inteiro traziam atos DIFERENTES no mesmo processo —
+   agrupar por processo esconderia publicação legítima, e publicação escondida é
+   prazo que ninguém vê. A chave junta processo + tribunal + órgão + tipo + data +
+   o texto inteiro: só colapsa o que é, letra por letra, a mesma coisa.
+
+   As irmãs ficam em `S.irmas[id]` porque `distribuir()` e `gravarFechado()`
+   procuram a publicação em `S.pubs`, que não tem o agrupamento. Elas gravam todas
+   em `publicacao_ids` — sem isso, a conferência das 10h31 acusaria as 4 escondidas
+   como esquecidas. */
+function agruparIguais(lista){
+  const vistos = new Map(), saida = [];
+  S.irmas = {};
+  for(const p of lista){
+    const chave = [p.processoRaw,p.tribunal,p.orgao,p.tipo,p.data,p.texto].join("\u0001");
+    const ja = vistos.get(chave);
+    if(ja){ S.irmas[ja.id].push(p.id); ja.nIguais++; continue; }
+    const rep = {...p, nIguais:1};
+    S.irmas[p.id] = [];
+    vistos.set(chave, rep);
+    saida.push(rep);
+  }
+  return saida;
+}
+
+/** Todas as publicações já tratadas — a principal de cada prazo e as iguais a ela. */
+function idsTratados(){
+  const s = new Set();
+  for(const p of S.prazos){
+    if(p.publicacao_id) s.add(p.publicacao_id);
+    for(const x of (p.publicacao_ids||[])) s.add(x);
+  }
+  return s;
+}
+
+function pubsFiltradas(){
+  const reg=$("#fRegiao").value, q=($("#fBusca").value||"").toLowerCase().trim();
+  const distribuidos = idsTratados();
+  const vivas = S.pubs.filter(p=>{
+    if(distribuidos.has(p.id)) return false;
+    /* Pré-processual fura o filtro de região — MENOS quando é do SUDESTE, que é
+       do Louis. Pedido dela em 17/11/2026: "mas se for do sudeste eu não quero
+       receber". Então um CEJUSC de Minas ou de São Paulo não entra na lista dela,
+       e um de Santa Catarina (região "OUTRA") continua entrando, que foi o caso
+       que motivou a exceção. */
+    const furaFiltro = p.preProcessual && p.regiao!=="SE";
+    /* 18/11/2026: "Minha" = TUDO que não é Sudeste. O clipping que o Louis
+       manda para ela conferir traz PR, TO, MS etc., e o filtro antigo (só NE)
+       escondia a região "OUTRA" — a conferência daquele dia disse "tudo
+       tratado" com um TJPR e um TJTO sem ninguém ter olhado. */
+    /* Trabalhista fica fora da visão dela em qualquer caso — nem o pré-processual
+       fura, porque trabalhista não é controlada por ela. */
+    if(reg==="NE" && p.regiao==="TRAB") return false;
+    if(reg==="NE"){ if(p.regiao==="SE" && !furaFiltro) return false; }
+    else if(reg!=="TODAS" && p.regiao!==reg && !furaFiltro) return false;
+    /* O número entra nas DUAS formas: com máscara (`processo`) e só dígitos
+       (`processoRaw`), porque ela ora digita "0700617-28", ora cola "070061728". */
+    if(q && !(p.processo+" "+p.processoRaw+" "+p.orgao+" "+p.texto+" "+p.tribunal+" "+p.partes).toLowerCase().includes(q)) return false;
+    return true;
+  });
+  /* Agrupa DEPOIS de filtrar: se 4 das 5 iguais já foram tratadas, a que sobra
+     aparece sozinha, sem chip de repetição. */
+  return agruparIguais(vivas).sort((a,b) => {
+    /* Dentro do mesmo dia, manda a ORDEM DO E-MAIL do Louis (`ordem` = o número
+       de "Publicação: N" do clipping), para ela conferir lado a lado com ele.
+       O clipping já vem agrupado por estado em ordem alfabética, então isso
+       preserva AL, BA, CE… sozinho. Quando o dia veio do DJEN não há esse
+       número: aí vale a UF, como antes. */
+    const da = String(a.data||""), db = String(b.data||"");
+    if(da !== db) return da.localeCompare(db);
+    const oa = Number(a.ordem), ob = Number(b.ordem);
+    if(Number.isFinite(oa) && Number.isFinite(ob) && oa !== ob) return oa - ob;
+    return ufDaPublicacao(a).localeCompare(ufDaPublicacao(b))
+        || String(a.tribunal||"").localeCompare(String(b.tribunal||""))
+        || String(a.processo||"").localeCompare(String(b.processo||""));
+  });
+}
+
+/** Avisos sobre a BUSCA em si, não sobre o conteúdo. Aparecem acima de tudo,
+    inclusive das telas vazias: se a lista veio capada, ela precisa saber antes
+    de olhar a lista — uma publicação que não aparece é um prazo que ninguém vê. */
+function avisoBusca(){
+  let html = "";
+  if(S.faltando)
+    html += '<div class="note" style="border-left-color:var(--crit)"><b>Esta lista está incompleta.</b> '
+      +'O DJEN informou '+S.faltando.total+' publicações neste período, mas só '+S.faltando.trouxe
+      +' ficaram guardadas — o sistema do CNJ falha em páginas isoladas de vez em quando. '
+      +'<b>Me peça para buscar este período de novo</b> antes de dar por conferido.</div>';
+  if(S.semDados && S.semDados.length)
+    html += '<div class="note" style="border-left-color:var(--warn)"><b>'
+      +(S.semDados.length===1 ? 'Um dia deste período ainda não foi buscado'
+                              : S.semDados.length+' dias deste período ainda não foram buscados')
+      +':</b> '+S.semDados.map(brDate).join(", ")+'. '
+      +'O painel não fala com o DJEN direto — quem busca é a rotina das 4h da manhã. '
+      +'Se precisar de algum desses dias agora, me peça no chat que eu busco na hora.</div>';
+  return html;
+}
+
+/* ============================================================
+   "Ficou algo para trás?" — a varredura dos dias anteriores (v40, 17/11/2026)
+   ------------------------------------------------------------
+   O painel abre no período de hoje (`periodoPadrao`). Está certo no dia a dia,
+   mas esconde dois casos REAIS medidos em 17/11/2026:
+   - o dia 02/11 tinha 27 publicações do Nordeste sem NENHUM prazo lançado, que
+     entraram no banco na recuperação histórica e nunca passaram pela triagem;
+   - 144 publicações de 16/11 foram acrescentadas DEPOIS que ela já tinha
+     trabalhado o dia, quando o DJEN se recuperou. Dia já trabalhado pode
+     receber publicação nova: a triagem de ontem não é definitiva.
+
+   Lê os dias guardados, conta quantas publicações da região escolhida continuam
+   SEM prazo lançado e mostra por dia. Não grava nada e não decide nada.
+
+   ⚠️ É SOB DEMANDA de propósito: varrer os 15 dias custa dezenas de leituras no
+   banco, e pendurar isso na abertura deixaria a tela lenta todo dia para
+   responder uma pergunta ocasional. */
+async function conferirAtrasadas(btn){
+  if(!S.db){ toast("O banco do painel não está disponível nesta visualização."); return; }
+  const antes = btn.textContent;
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Conferindo…';
+  const box = $("#atrasadasBox");
+  try{
+    const dias = await listarDiasGuardados();
+    const hoje = iso8(new Date());
+    const reg  = $("#fRegiao").value;
+    /* Mesmo conjunto que a triagem usa: cobre `publicacao_ids`, senão as
+       publicações iguais escondidas num cartão só voltariam como pendentes. */
+    const feitos = idsTratados();
+    const porDia = [];
+    for(const dia of dias){
+      if(dia > hoje) continue;
+      const doc = await lerDia(dia);
+      if(!doc) continue;
+      let n = 0;
+      for(const x of (doc.itens||[])){
+        /* Vale a data do ITEM: o clipping do webjur guarda, no documento de um
+           dia, ato disponibilizado em outro. Mesma razão do `carregarPeriodo`. */
+        const d = String(x.data||"").slice(0,10);
+        if(d && d !== dia) continue;
+        if(feitos.has(String(x.id))) continue;
+        const tribunal = x.tribunal || x.siglaTribunal || "";
+        const orgao    = x.orgao    || x.nomeOrgao    || "";
+        const classe   = x.classe   || x.nomeClasse   || "";
+        const processo = fmtProc(x.processo, x.numeroprocessocommascara,
+                                 x.numero_processo, x.processo_raw);
+        const r = regiaoDe(tribunal, orgao, processo);
+        /* Mesma exceção da triagem: pré-processual fura o filtro, menos o
+           Sudeste, que é do Louis. */
+        const fura = (/pr[ée]\s*-?\s*processual/i.test(classe) || /cejusc/i.test(orgao))
+                     && r !== "SE";
+        if(reg==="NE"){ if(r==="SE") continue; }   // "minha" = tudo fora do Sudeste
+        else if(reg!=="TODAS" && r!==reg && !fura) continue;
+        n++;
+      }
+      if(n) porDia.push({dia, n});
+    }
+    box.innerHTML = notaAtrasadas(porDia, reg);
+  }catch(e){
+    box.innerHTML = '<div class="note" style="border-left-color:var(--crit)">'
+      +'<b>Não consegui conferir os dias anteriores.</b> '+esc(String(e && e.message || e))+'</div>';
+  }finally{
+    btn.disabled = false; btn.textContent = antes;
+  }
+}
+
+/** Os dias que existem no banco, em ordem. Um documento por dia, então esta
+    leitura é barata — o caro são os pedaços de itens, lidos depois. */
+async function listarDiasGuardados(){
+  const snap = await S.db.collection("publicacoes").get();
+  const docs = (snap && snap.docs) ? snap.docs : [];
+  return docs.map(x => {
+    const d = (typeof x.data === "function") ? x.data() : x;
+    return String((d && d.data) || x.id || "").slice(0,10);
+  }).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+}
+
+function notaAtrasadas(porDia, reg){
+  const nome = reg==="NE" ? "da sua parte (tudo fora do Sudeste)" : reg==="SE" ? "do Sudeste" : "de todas as regiões";
+  if(!porDia.length)
+    return '<div class="note"><b>Nada para trás.</b> Todas as publicações '+nome
+      +' dos dias guardados já têm prazo lançado, foram marcadas como tratadas por você '
+      +'ou como sem providência.</div>';
+  const soma = porDia.reduce((a,b)=>a+b.n,0);
+  const ini = porDia[0].dia, fim = porDia[porDia.length-1].dia;
+  return '<div class="note" style="border-left-color:var(--warn)">'
+    +'<b>'+soma+' publicaç'+(soma===1?'ão ainda sem tratamento':'ões ainda sem tratamento')
+    +' '+nome+'</b>, em dias já guardados:<br>'
+    +porDia.map(x=>'· <b>'+brDate(x.dia)+'</b> — '+x.n).join('<br>')
+    +'<br><br>Isso não quer dizer que foram esquecidas: publicação sem prazo lançado é '
+    +'tudo que ainda não passou pela triagem. Para olhar, abra o período e trate como '
+    +'de costume — "Sem providência" e "Já tratado (eu)" também tiram da lista.'
+    +'<br><br><button class="btn btn-primary" data-abrir-ini="'+ini+'" data-abrir-fim="'+fim+'">'
+    +'Abrir '+brDate(ini)+' a '+brDate(fim)+'</button></div>';
+}
+
+function renderTriagem(){
+  const list = pubsFiltradas();
+  $("#nTri").textContent = list.length;
+  const box=$("#triagemBox");
+  if(!S.pubs.length){
+    box.innerHTML=avisoBusca()+'<div class="empty"><h3>Nenhuma publicação carregada</h3>'
+      +'<p>Escolha o período e toque no botão de carregar. Para um dia só, deixe as duas datas iguais; '
+      +'para pegar o acumulado de um feriado ou fim de semana, recue a <b>data inicial</b>. '
+      +'As publicações da OAB '+esc(OAB.numero+"/"+OAB.uf)+' são buscadas no Comunica PJe do CNJ '
+      +'pela rotina das 4h da manhã e ficam guardadas aqui; o painel separa o que é da sua região.</p></div>';
+    return;
+  }
+  if(!list.length){
+    box.innerHTML=avisoBusca()+'<div class="empty"><h3>Triagem zerada</h3>'
+      +'<p>Tudo o que chegou nesse filtro já foi distribuído ou descartado. Troque a região ou o período para ver o resto.</p></div>';
+    return;
+  }
+  // A lista de advogados vem com quem já cuida do processo já escolhido.
+  const optsAdv = sel => S.advs.map(a=>'<option value="'+esc(a.id)+'"'
+      +(sel && sel===a.id ? ' selected' : '')+'>'+esc(a.nome)+'</option>').join("");
+  // Num período de vários dias a data de cada publicação deixa de ser óbvia: mostra.
+  const varios = !!S.periodo.ini && S.periodo.ini !== S.periodo.fim;
+  box.innerHTML = avisoBusca() + '<div class="card">'+list.map(p=>{
+    const s = S.sugestoes[p.id];
+    const cls = s ? {rotulo:s.rotulo, prov:s.providencia, dias:s.prazo_dias, origem:"ia", conf:s.confianca} : p.cls;
+    // A providência que ela mesma já mandou vence o texto padrão da regra,
+    // mas nunca a tese salva nem a sugestão que ela pediu para a IA.
+    const apr = (cls.origem==="regra") ? providenciaAprendida(cls.rotulo) : null;
+    const provFinal = apr ? apr.texto : (cls.prov||"");
+    // Mesmo processo já distribuído? Concentra com quem já conhece o caso.
+    const jd = jaDistribuido(p.processo, p.processoRaw);
+    const conf = cls.origem==="memoria" ? '<span class="chip c-info">memória do escritório</span>'
+               : cls.origem==="ia"      ? '<span class="chip c-info">sugerido por IA</span>'
+               : cls.origem==="regra"   ? '<span class="chip c-mute">regra padrão</span>'
+               : '<span class="chip c-warn">sem classificação</span>';
+    const prz = cls.dias ? calcPrazo(p.data, cls.dias) : null;
+    return '<div class="pub" data-id="'+esc(p.id)+'">'
+      +'<div class="pub-top">'
+        +(p.fonte==="webjur" && Number.isFinite(p.ordem)
+            ? '<span class="chip c-mute" title="Número desta publicação no e-mail do Louis">pub. '+p.ordem+'</span>' : '')
+        +'<span class="chip c-accent">'+esc(p.tribunal)+'</span>'
+        +'<span class="chip '+(p.regiaoIncerta?"c-warn":"c-mute")+'"'
+          +(p.regiaoIncerta?' title="O '+esc(p.tribunal)+' atende vários estados e o nome do órgão não disse qual. Coloquei no Nordeste por segurança — confira antes de distribuir."':'')
+          +'>'+esc(p.regiao==="NE"?"Nordeste":p.regiao==="SE"?"Sudeste":"Outra")
+          +(p.regiaoIncerta?" · conferir":"")+'</span>'
+        +(p.preProcessual?'<span class="chip c-info" title="Pré-processual no CEJUSC — entra na sua lista venha de que estado vier, menos do Sudeste, que é do Louis">pré-processual · '+esc(ufDaPublicacao(p))+'</span>':'')
+        /* O mesmo ato chega uma vez por destinatário. O cartão é um só, e diz
+           quantas vezes veio — tratá-lo trata todas (ver agruparIguais). */
+        +(p.nIguais>1?'<span class="chip c-mute" title="O tribunal publicou este mesmo ato '+p.nIguais+' vezes hoje, uma para cada destinatário. O teor é idêntico nas '+p.nIguais+'. Tratar este cartão trata todas.">veio '+p.nIguais+'x · idênticas</span>':'')
+        +(varios?'<span class="chip c-info" title="Data de disponibilização no DJEN">'+brDate(p.data)+'</span>':'')
+        +'<span class="pub-proc">'+esc(p.processo)+'</span>'
+        +'<span class="chip c-mute">'+esc(p.tipo)+'</span>'
+      +'</div>'
+      +'<div class="pub-org">'+esc(p.orgao)+(p.classe?' · '+esc(p.classe):'')+'</div>'
+      +'<div class="pub-txt" title="Clique para expandir">'+esc(p.texto)+'</div>'
+      +'<div class="sug">'
+        +'<div class="sug-hd"><span>'+esc(cls.rotulo||"Não classificada")+'</span>'+conf
+          +(prz?'<span class="chip c-warn">fatal '+brDate(prz.fatal)+' · '+cls.dias+' dias úteis</span>':'')
+          +(cls.diasDoTexto?'<span class="chip c-ok">prazo lido no texto</span>':'')
+          +(apr?'<span class="chip c-ok" title="Texto que você mesma já mandou em publicações deste tipo">sua providência · '+apr.vezes+'x</span>':'')
+          +(jd?'<span class="chip c-accent" title="Este mesmo processo já foi distribuído '+jd.total+'x, e esta pessoa pegou '+jd.vezes+'. Já vem escolhida para o caso ficar concentrado.">'
+              +esc(jd.nome.split(" ")[0])+' já cuida deste processo</span>':'')+'</div>'
+        +'<div class="sug-body">'
+          +'<input class="i-prov" placeholder="Providência" value="'+esc(provFinal)+'" style="flex:1;min-width:190px">'
+          +'<input class="i-dias" type="number" min="0" max="180" value="'+(cls.dias||0)+'" style="width:72px" title="Dias úteis">'
+          +'<select class="i-adv"><option value="">Quem faz…</option>'+optsAdv(jd?jd.advId:"")+'</select>'
+        +'</div>'
+        +'<div class="acts">'
+          +'<button class="btn btn-sm btn-primary a-dist">'+(S.mcp?"Distribuir e enviar":"Distribuir")+'</button>'
+          +'<button class="btn btn-sm a-prev" title="Mostra como o e-mail vai ficar, sem distribuir nada">Ver e-mail</button>'
+          +'<button class="btn btn-sm a-jarep" title="Você já passou esta publicação para alguém por fora do painel — pelo seu Gmail, WhatsApp ou pessoalmente. Entra em Prazos com a espera já contando, e o painel não manda e-mail nenhum.">Já repassei</button>'
+          +'<button class="btn btn-sm a-eu" title="Você resolve esta sem repassar a ninguém — some da triagem e conta como tratada na conferência do dia">Já tratado (eu)</button>'
+          +'<button class="btn btn-sm a-semprov" title="Intimação que não é para o escritório — dirigida à parte autora ou à secretaria. Sai da triagem e fica registrada, para a conferência do dia não acusar como esquecida.">Sem providência</button>'
+          +'<button class="btn btn-sm a-tese" title="Guarda esta classificação na memória">Salvar na memória</button>'
+          +'<button class="btn btn-sm a-desc">Descartar</button>'
+          +(p.link?'<a class="btn btn-sm" href="'+esc(p.link)+'" target="_blank" rel="noopener">Abrir no tribunal</a>':'')
+        +'</div>'
+      +'</div>'
+    +'</div>';
+  }).join("")+'</div>';
+}
+
+/* ============================================================
+   RENDER — Prazos
+   ============================================================ */
+/* Dois chips, porque são DUAS perguntas diferentes que antes estavam na mesma frase:
+   o primeiro diz em que pé está a RESPOSTA do advogado; o segundo, quando aparece,
+   diz a urgência do PRAZO FATAL. "Sem resposta" agora só vale depois que o e-mail
+   saiu de fato — antes disso o chip é "a enviar", e a bola está com ela. */
+const statusChip = p => {
+  /* "entregue · por e-mail" = baixa automática. O título mostra a frase que a
+     motivou — ela precisa poder conferir de onde veio, não confiar no painel. */
+  if(p.status==="entregue") return '<span class="chip c-ok"'
+    +(p.entregue_por==="email"
+        ? ' title="'+esc('Dado baixa pela resposta: "'+(p.entregue_prova||"")+'"')+'"'
+        : '')
+    +'>entregue'+(p.entregue_por==="email"?' · por e-mail':'')+'</span>';
+  if(p.status==="eu") return '<span class="chip c-info">já tratado (eu)</span>';
+  if(p.status==="sem_prov") return '<span class="chip c-mute">sem providência</span>';
+  const d = diasUteisAte(p.prazo_fatal);
+  const urg = d===null ? ""
+    : d<0  ? ' <span class="chip c-crit">vencido</span>'
+    : p.prazo_fatal===iso8(new Date()) ? ' <span class="chip c-crit">vence hoje</span>'
+    : d===0 ? ' <span class="chip c-crit">vence '+brDate(p.prazo_fatal)+'</span>'
+    : d<=2 ? ' <span class="chip c-crit">falta'+(d>1?'m ':' ')+d+'d</span>'
+    : d<=5 ? ' <span class="chip c-warn">faltam '+d+'d</span>' : "";
+  if(p.status==="ok")  return '<span class="chip c-info">confirmado</span>'+urg;
+  if(!p.enviado_em)    return '<span class="chip c-mute">a enviar</span>'+urg;
+  const e = diasUteisDesde(p.enviado_em)||0;
+  return '<span class="chip '+(e>=COBRAR_APOS?"c-crit":"c-warn")+'">sem resposta'
+    +(e?' há '+e+'d':' — enviado hoje')+'</span>'+urg;
+};
+
+function prazosFiltrados(){
+  const st=$("#pStatus").value, ad=$("#pAdv").value;
+  /* Busca por NÚMERO DE PROCESSO ou NOME DA PARTE — pedidos dela em 17/11/2026
+     ("pesquisar pelo numero do processo" e, logo depois, "me da opção de pesquisar
+     pelo nome da parte tbm").
+
+     Dois modos, decididos pelo que ela digita:
+     - só dígitos e separadores (`0801538-59...`, `0801538`, `080 1538`) → número de
+       processo, comparado SÓ por dígitos dos dois lados. O DJEN manda ora com
+       máscara, ora sem, e ela digita de qualquer jeito.
+     - qualquer outra coisa → texto, em parte contrária, processo, providência,
+       órgão, tribunal, rótulo e responsável.
+
+     ⚠️ A busca por texto IGNORA ACENTO dos dois lados. A parte contrária vem do DJEN
+     em maiúsculas e com acento ("JOSÉ GUALBERTO DE SOUSA"); digitar "jose gualberto"
+     não casaria, e ela não tem por que adivinhar onde tem acento. */
+  const semAcento = s => String(s||"").normalize("NFD")
+                           .replace(/[̀-ͯ]/g,"").toLowerCase();
+  const qBruto = ($("#pBusca") ? $("#pBusca").value : "").trim();
+  const soNumero = /^[\d.\-\/\s]+$/.test(qBruto);
+  const qDig = qBruto.replace(/\D/g, "");
+  const q = semAcento(qBruto);
+  return S.prazos.filter(p=>{
+    if(qBruto){
+      if(soNumero && qDig){
+        const alvo = String(p.processo_raw || "").replace(/\D/g,"")
+                  || String(p.processo || "").replace(/\D/g,"");
+        if(!alvo.includes(qDig)) return false;
+      }else{
+        const campos = semAcento([p.parte_contraria, p.processo, p.providencia,
+                        p.orgao, p.tribunal, p.rotulo, p.advogado_nome].join(" "));
+        if(!campos.includes(q)) return false;
+      }
+    }
+    /* Some da aba Prazos depois de 1 dia — mas se ela ESCOLHER o status no filtro,
+       continua achando por aqui. Esconder no filtro explícito seria sumir com o dado. */
+    if(arquivado(p) && !ARQUIVAVEL.has(st)) return false;
+    if(ad && p.advogado_id!==ad) return false;
+    if(st==="abertos") return !FECHADO.has(p.status);
+    if(st==="todos") return true;
+    if(st==="a_enviar") return p.status==="pendente" && !p.enviado_em;
+    if(st==="pendente") return p.status==="pendente" && !!p.enviado_em;
+    return p.status===st;
+  }).sort((a,b)=>(a.prazo_fatal||"9999").localeCompare(b.prazo_fatal||"9999"));
+}
+
+/* ---- Cumpridos ----
+   "Após 1 dia" = entregue em dia ANTERIOR a hoje (data local). A data da entrega é
+   data_entrega; prazo antigo sem ela usa data_ok / respondeu_em / distribuido_em. */
+const dataEntrega = p => p.data_entrega || p.data_ok || p.respondeu_em || p.distribuido_em || "";
+/* Vai para Cumpridos: entregue pelo advogado, tratado por ela, e sem providência —
+   pedido dela em 18/11/2026 sobre o bloco "Sem responsável · tratado por você"
+   (66 prazos, nenhum em aberto, tumultuando a tela). */
+const ARQUIVAVEL = new Set(["entregue","eu","sem_prov"]);
+const TIPO_CUM = {entregue:"entregue", eu:"tratado por você", sem_prov:"sem providência"};
+const arquivado = p => {
+  if(!ARQUIVAVEL.has(p.status)) return false;
+  const d = dataEntrega(p); if(!d) return false;
+  const dt = new Date(d); if(isNaN(dt)) return false;
+  return iso8(dt) < iso8(new Date());
+};
+function renderCumpridos(){
+  const box = $("#cumpridosBox"); if(!box) return;
+  const todos = S.prazos.filter(arquivado);
+  $("#nCum").textContent = todos.length;
+  const semAc = s => String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+  const qb = ($("#cmBusca").value||"").trim(), qd = qb.replace(/\D/g,""), q = semAc(qb);
+  const soNum = /^[\d.\-\/\s]+$/.test(qb);
+  const lista = todos.filter(p=>{
+    if(!qb) return true;
+    if(soNum && qd) return String(p.processo_raw||p.processo||"").replace(/\D/g,"").includes(qd);
+    return semAc([p.processo,p.parte_contraria,p.advogado_nome,p.providencia,p.tribunal,p.orgao].join(" ")).includes(q);
+  }).sort((a,b)=>String(dataEntrega(b)).localeCompare(String(dataEntrega(a))));
+  if(!todos.length){
+    box.innerHTML='<div class="empty"><h3>Nenhum prazo arquivado ainda</h3>'
+      +'<p>Quando um prazo é fechado — entregue pelo advogado, tratado por você ou sem providência — '
+      +'ele fica na aba <b>Prazos</b> até o fim do dia e, a partir do dia seguinte, aparece aqui.</p></div>';
+    return;
+  }
+  if(!lista.length){ box.innerHTML='<div class="empty"><p>Nada encontrado com essa busca.</p></div>'; return; }
+  box.innerHTML='<div class="tw"><table><thead><tr><th>Entregue em</th><th>Processo</th><th>Parte contrária</th>'
+    +'<th>Responsável</th><th>Como fechou</th><th>Providência</th><th>Resposta</th><th></th></tr></thead><tbody>'
+    +lista.map(p=>{ const d=new Date(dataEntrega(p));
+      return '<tr data-id="'+esc(p.id)+'"><td class="mono">'+(isNaN(d)?"—":brDate(iso8(d)))+'</td>'
+        +'<td><b class="mono">'+esc(p.processo||"")+'</b><br><span style="font-size:11.5px;color:var(--fg-muted)">'+esc(p.tribunal||"")+'</span></td>'
+        +'<td>'+esc(p.parte_contraria||"—")+'</td>'
+        +'<td>'+esc(p.advogado_nome||"—")+'</td>'
+        +'<td><span class="chip '+(p.status==="entregue"?"c-ok":p.status==="eu"?"c-info":"c-mute")+'">'
+          +esc(TIPO_CUM[p.status]||p.status)+'</span></td>'
+        +'<td>'+esc(p.providencia||"")+'</td>'
+        +'<td>'+esc(p.resposta_texto||p.entregue_prova||"")+'</td>'
+        +'<td style="white-space:nowrap"><button class="btn btn-sm cm-pub" '
+          +'title="Ler a publicação que gerou este prazo">📄</button></td></tr>'; }).join("")
+    +'</tbody></table></div>';
+}
+
+function renderPrazos(){
+  const list=prazosFiltrados();
+  $("#nPrz").textContent = S.prazos.filter(p=>!FECHADO.has(p.status)).length;
+  const box=$("#prazosBox");
+  if(!S.prazos.length){
+    box.innerHTML='<div class="empty"><h3>Nenhum prazo distribuído ainda</h3>'
+      +'<p>Os prazos aparecem aqui assim que você distribuir uma publicação na aba <b>Triagem</b>. '
+      +'Cada um guarda quem é o responsável, a providência combinada e a data fatal.</p></div>';
+    return;
+  }
+  if(!list.length){ box.innerHTML='<div class="empty"><h3>Nada neste filtro</h3>'
+    +'<p>Troque o status, o advogado, ou limpe a busca por processo.</p></div>'; return; }
+  /* Agrupado por RESPONSÁVEL, em ordem alfabética, com a contagem de cada bloco.
+     Pedido dela em 16/11/2026: "pra eu saber quantos estao com cada um".
+     A coluna "Responsável" saiu: com o nome no cabeçalho do bloco, repetir em toda
+     linha só roubava espaço da Providência, que é o que ela lê.
+     Quem não tem responsável (já tratado por ela, sem providência) fica num bloco
+     próprio NO FIM — não é carga de ninguém e não pode inflar a conta de outra pessoa. */
+  /* Rótulo do bloco final: são os `eu` e `sem_prov`, coisa que ELA resolveu.
+     "Sem responsável" sozinho não dizia isso, e ela perguntou em 17/11/2026
+     *"onde estão os prazos q eu tratei?"* — estavam aqui, no fim da lista. */
+  const SEM_RESP = "Sem responsável · tratado por você";
+  const grupos = new Map();
+  for(const p of list){
+    const nome = String(p.advogado_nome||"").trim() || SEM_RESP;
+    if(!grupos.has(nome)) grupos.set(nome, []);
+    grupos.get(nome).push(p);
+  }
+  /* localeCompare com pt-BR e sensitivity "base": "Álvaro" cai junto de "Alvaro",
+     em vez de ir para o fim da lista como aconteceria na ordem de código. */
+  const nomes = [...grupos.keys()].sort((a,b) =>
+    a===SEM_RESP ? 1 : b===SEM_RESP ? -1
+    : a.localeCompare(b, "pt-BR", {sensitivity:"base"}));
+
+  /* O bloco do que ELA resolveu não tem data fatal, então ordenar por fatal deixava
+     tudo na mesma altura e sem sentido. Pedido dela em 17/11/2026: *"coloca os q eu
+     tratei em ordem de lançamento pra eu saber"* — o mais recente primeiro, que é o
+     que ela acabou de fazer. Os blocos das pessoas continuam por data fatal. */
+  if(grupos.has(SEM_RESP)){
+    const quando = p => String(p.tratado_em || p.distribuido_em || "");
+    grupos.get(SEM_RESP).sort((a,b) => quando(b).localeCompare(quando(a)));
+  }
+
+  const cabGrupo = nome => {
+    const g = grupos.get(nome);
+    const abertos = g.filter(p=>!FECHADO.has(p.status)).length;
+    return '<tr class="grp"><td colspan="6">'+esc(nome)
+      +'<span class="n">'+g.length+(g.length>1?' prazos':' prazo')
+      +(abertos===g.length ? ''
+        : abertos ? ' · '+abertos+' em aberto'
+                  : ' · nenhum em aberto')
+      +'</span></td></tr>';
+  };
+
+  box.innerHTML='<div class="tw"><table><thead><tr>'
+    +'<th>Fatal</th><th>Processo</th><th>Trib.</th><th>Providência</th><th>Status</th><th></th>'
+    +'</tr></thead><tbody>'
+    +nomes.map(nome => cabGrupo(nome) + grupos.get(nome).map(p=>'<tr data-id="'+esc(p.id)+'">'
+      +'<td class="mono" style="white-space:nowrap">'+brDate(p.prazo_fatal)+'</td>'
+      +'<td class="mono" style="font-size:12px">'+esc(p.processo)+'</td>'
+      +'<td>'+esc(p.tribunal)+'</td>'
+      +'<td style="min-width:170px">'+esc(p.providencia)+'</td>'
+      +'<td>'+statusChip(p)
+        /* Prazo repassado por fora não tem e-mail do painel: a baixa automática
+           pode não achar resposta nenhuma. Ela precisa ver isso na linha, não
+           descobrir quando o prazo encalhar na cobrança. */
+        +(p.repassado_fora && !FECHADO.has(p.status)
+            ? '<div style="font-size:11px;color:var(--fg-muted);margin-top:3px" title="Este prazo não saiu pelo painel, então pode não haver conversa do Gmail para o &quot;Conferir respostas&quot; procurar. A baixa pode precisar ser na mão.">repassado por fora · '
+              +esc(p.repassado_por||"")+'</div>'
+            : '')
+        +(p.resposta_texto
+            ? '<div style="font-size:11px;color:var(--fg-muted);margin-top:3px;max-width:240px" title="'+esc(p.resposta_texto)+'">"'
+              +esc(p.resposta_texto.slice(0,80))+(p.resposta_texto.length>80?'…':'')+'"</div>'
+            : '')
+      +'</td>'
+      +'<td style="white-space:nowrap">'
+        +'<button class="btn btn-sm p-pub" title="Ler a publicação que gerou este prazo">📄</button> '
+        +'<button class="btn btn-sm p-mail" title="Gerar o e-mail deste prazo">✉</button> '
+        +(p.prazo_fatal&&!p.na_agenda?'<button class="btn btn-sm p-cal" title="Lançar na minha Google Agenda">📅</button> ':'')
+        +(p.status==="pendente"?'<button class="btn btn-sm p-ok" title="O advogado respondeu OK no e-mail">Marcar OK</button> ':'')
+        +(p.entregue_por==="email"?'<button class="btn btn-sm p-naoent" title="A resposta não era de cumprimento — devolve para “confirmado”">↶ não cumpriu</button> ':'')
+        +(!FECHADO.has(p.status)?'<button class="btn btn-sm p-ent">Entregue</button> ':'')
+        +'<button class="btn btn-sm p-del" title="Remover">×</button>'
+      +'</td></tr>').join("")).join("")
+    +'</tbody></table></div>';
+}
+
+/* ============================================================
+   RENDER — Cobrança
+   A dor original: "eu perco o controle de quem não me respondeu".
+   O antigo "pendente" misturava duas situações muito diferentes:
+     1. A ENVIAR     — distribuído, mas o e-mail ainda nem saiu (a bola é dela)
+     2. SEM RESPOSTA — e-mail enviado, o OK não voltou (a bola é do advogado)
+   O que separa as duas é o campo `enviado_em`, gravado quando ela clica
+   em "Já enviei" no gerador de e-mail. Sem esse clique não há relógio.
+   ============================================================ */
+function filasCobranca(){
+  const pend = S.prazos.filter(p=>p.status==="pendente");
+  const aEnviar = pend.filter(p=>!p.enviado_em);
+  const semResp = pend.filter(p=>p.enviado_em);
+  const atrasados = semResp.filter(p=>(diasUteisDesde(p.enviado_em)||0)>=COBRAR_APOS);
+  return {aEnviar, semResp, atrasados};
+}
+
+/** Agrupa por advogado: ela cobra uma pessoa de cada vez, não um processo de cada vez. */
+function agruparPorAdv(lista){
+  const m = new Map();
+  lista.forEach(p=>{ const k=p.advogado_id||"";
+    if(!m.has(k)) m.set(k,[]); m.get(k).push(p); });
+  return [...m.entries()].map(([advId,itens])=>{
+    const adv = S.advs.find(a=>a.id===advId) || null;
+    return {advId, adv,
+      nome:  adv ? adv.nome : (itens[0].advogado_nome || "Sem responsável"),
+      email: adv ? (adv.email||"") : (itens[0].advogado_email||""),
+      espera: Math.max(...itens.map(p=>diasUteisDesde(p.enviado_em)||0)),
+      itens: itens.sort((a,b)=>(a.prazo_fatal||"9999").localeCompare(b.prazo_fatal||"9999"))};
+  });
+}
+
+function linhaCobranca(g, tipo){
+  const n    = g.itens.length;
+  const venc = g.itens.filter(p=>{const d=diasUteisAte(p.prazo_fatal); return d!==null&&d<0;}).length;
+  const urg  = g.itens.filter(p=>{const d=diasUteisAte(p.prazo_fatal); return d!==null&&d>=0&&d<=2;}).length;
+  const cob  = Math.max(...g.itens.map(p=>p.cobrancas||0));
+  const esp  = tipo!=="cobrar" ? ''
+    : '<span class="chip '+(g.espera>=COBRAR_APOS?"c-crit":"c-warn")+'">'
+      +(g.espera ? "esperando há "+g.espera+(g.espera>1?" dias úteis":" dia útil") : "enviado hoje")
+      +'</span>';
+  return '<div class="aud" data-adv="'+esc(g.advId)+'" data-tipo="'+tipo+'">'
+    +'<div class="aud-top">'
+      +'<span class="aud-nome">'+esc(g.nome)+'</span>'
+      +'<span class="chip c-mute">'+n+(n>1?' prazos':' prazo')+'</span>'+esp
+      +(venc?'<span class="chip c-crit">'+venc+' já vencido'+(venc>1?'s':'')+'</span>':'')
+      +(!venc&&urg?'<span class="chip c-crit">'+urg+' vence'+(urg>1?'m':'')+' em até 2d</span>':'')
+      +(cob?'<span class="chip c-info">já cobrado '+cob+'x</span>':'')
+      +(g.email?'':'<span class="chip c-warn">sem e-mail cadastrado</span>')
+    +'</div>'
+    +'<div class="aud-meta">'
+      +g.itens.slice(0,4).map(p=>'<span><b class="mono">'+esc(p.processo)+'</b> · fatal '
+        +brDate(p.prazo_fatal)+'</span>').join("")
+      +(n>4?'<span>+ '+(n-4)+(n-4>1?' outros':' outro')+'</span>':'')
+    +'</div>'
+    +'<div class="acts">'
+      +'<button class="btn btn-sm btn-primary k-mail">'
+        +(tipo==="cobrar"?"Cobrar por e-mail":"Gerar e-mail")+'</button>'
+      +'<button class="btn btn-sm k-ver">Ver os prazos</button>'
+      /* "A enviar": um "✕ cancelar" por processo — pedido dela em 18/11/2026 ("consiga
+         cancelar os que não foram ainda"). Cancelar APAGA o prazo e a publicação volta
+         para a Triagem. Só existe para o que ainda não saiu por e-mail. */
+      +(tipo==="enviar"
+        ? g.itens.map(p=>'<button class="btn btn-sm k-cancel" data-id="'+esc(p.id)+'"'
+            +' title="Desfaz a distribuição: o prazo some e a publicação volta para a Triagem.">'
+            +'✕ cancelar '+esc(p.processo)+'</button>').join("")
+        : '')
+    +'</div>'
+  +'</div>';
+}
+
+function renderCobranca(){
+  const {aEnviar, semResp, atrasados} = filasCobranca();
+  $("#nCob").textContent = aEnviar.length + atrasados.length;
+  const box = $("#cobrancaBox");
+  if(!aEnviar.length && !semResp.length){
+    box.innerHTML = '<div class="empty"><h3>Ninguém está devendo resposta</h3>'
+      +'<p>Todo prazo distribuído já foi enviado e confirmado. Quando você distribuir na aba '
+      +'<b>Triagem</b> e gerar o e-mail, o que ficar sem OK aparece aqui com os dias de espera contados.</p></div>';
+    return;
+  }
+  let html = '<div class="note"><b>Como esta aba funciona.</b> No gerador de e-mail, depois de mandar a '
+    +'mensagem, você clica em <b>"Já enviei"</b>. É esse clique que liga o relógio: daí em diante o painel '
+    +'conta os dias úteis de espera e mostra aqui quem passou de '+COBRAR_APOS
+    +' dias sem devolver o OK. Nada sai do painel sozinho — ele só para de deixar você no escuro.</div>';
+
+  if(aEnviar.length)
+    html += '<div class="sec-h">A enviar <span class="chip c-warn">'+aEnviar.length+'</span>'
+      +'<span style="font-weight:400;font-size:12px;color:var(--fg-muted)">distribuído, mas o e-mail ainda não saiu</span></div>'
+      +'<div class="card">'+agruparPorAdv(aEnviar)
+        .sort((a,b)=>b.itens.length-a.itens.length)
+        .map(g=>linhaCobranca(g,"enviar")).join("")+'</div>';
+
+  if(semResp.length)
+    html += '<div class="sec-h">Sem resposta <span class="chip c-crit">'+semResp.length+'</span>'
+      +'<span style="font-weight:400;font-size:12px;color:var(--fg-muted)">e-mail enviado, o OK não voltou</span></div>'
+      +'<div class="card">'+agruparPorAdv(semResp)
+        .sort((a,b)=>b.espera-a.espera)
+        .map(g=>linhaCobranca(g,"cobrar")).join("")+'</div>';
+
+  box.innerHTML = html;
+}
+
+/* ============================================================
+   RENDER — Equipe
+   ============================================================ */
+function renderEquipe(){
+  $("#nEqp").textContent = S.advs.length;
+  const box=$("#equipeBox");
+  if(!S.advs.length){
+    box.innerHTML='<div class="empty"><h3>Cadastre sua equipe</h3>'
+      +'<p>Com os advogados cadastrados o painel mostra, em um lugar só, quantos prazos cada um tem em aberto '
+      +'e quem ainda não respondeu — que é o controle que hoje se perde no e-mail.</p></div>';
+    return;
+  }
+  box.innerHTML='<div class="grid">'+S.advs.map(a=>{
+    const meus = S.prazos.filter(p=>p.advogado_id===a.id);
+    const pend = meus.filter(p=>p.status==="pendente").length;
+    const ok   = meus.filter(p=>p.status==="ok").length;
+    const ent  = meus.filter(p=>p.status==="entregue").length;
+    const atr  = meus.filter(p=>!FECHADO.has(p.status) && diasUteisAte(p.prazo_fatal)<0).length;
+    const aenv = meus.filter(p=>p.status==="pendente" && !p.enviado_em).length;
+    const semR = meus.filter(p=>p.status==="pendente" && p.enviado_em
+                   && (diasUteisDesde(p.enviado_em)||0)>=COBRAR_APOS).length;
+    const carga = pend+ok, tot = Math.max(carga+ent,1);
+    return '<div class="card adv" data-id="'+esc(a.id)+'">'
+      +'<div class="adv-hd"><h3>'+esc(a.nome)+'</h3>'
+        +'<span class="adv-load" style="color:'+(atr?"var(--crit)":carga>6?"var(--warn)":"var(--fg)")+'">'+carga+'</span></div>'
+      +'<div class="adv-bar">'
+        +(pend?'<i style="background:var(--warn);width:'+(pend/tot*100)+'%"></i>':'')
+        +(ok  ?'<i style="background:var(--info);width:'+(ok/tot*100)+'%"></i>':'')
+        +(ent ?'<i style="background:var(--ok);width:'+(ent/tot*100)+'%"></i>':'')
+      +'</div>'
+      +'<div class="adv-legend">'
+        +'<span><i class="dot" style="background:var(--warn)"></i>sem resposta <b>'+pend+'</b></span>'
+        +'<span><i class="dot" style="background:var(--info)"></i>confirmados <b>'+ok+'</b></span>'
+        +'<span><i class="dot" style="background:var(--ok)"></i>entregues <b>'+ent+'</b></span>'
+      +'</div>'
+      +(atr?'<div class="chip c-crit">'+atr+' vencido'+(atr>1?'s':'')+' em aberto</div>':'')
+      +(semR?'<div class="chip c-crit">'+semR+' sem resposta há '+COBRAR_APOS+'+ dias</div>':'')
+      +(aenv?'<div class="chip c-warn">'+aenv+' e-mail'+(aenv>1?'s':'')+' ainda a enviar</div>':'')
+      +(a.email
+          ? '<div style="font-size:11.5px;color:var(--fg-faint);overflow-wrap:anywhere">'+esc(a.email)
+            +(a.email_confirmar?' <span class="chip c-warn">confirmar</span>':'')+'</div>'
+          : '<div class="chip c-warn" title="Sem e-mail o painel não monta a mensagem de distribuição">falta o e-mail</div>')
+      +'<div class="acts">'
+        +(carga?'<button class="btn btn-sm btn-primary a-mail" title="E-mail com todos os prazos em aberto deste advogado">Gerar e-mail ('+carga+')</button>':'')
+        +'<button class="btn btn-sm a-ver">Ver prazos</button>'
+        +'<button class="btn btn-sm a-edit">Editar</button></div>'
+    +'</div>';
+  }).join("")+'</div>';
+}
+
+/* ============================================================
+   RENDER — Memória
+   ============================================================ */
+function renderMemoria(){
+  $("#nMem").textContent = S.teses.length;
+  const box=$("#memoriaBox");
+  const base = '<div class="note"><b>Como o painel decide.</b> Primeiro ele procura uma tese sua na memória. '
+    +'Depois, o que ele aprendeu vendo você distribuir. Só então cai nas '+REGRAS.length
+    +' regras padrão do escritório (sentença, laudo, especificação de provas, cumprimento…).</div>';
+
+  /* O que ele aprendeu sozinho fica à vista: nada de sugestão que ela não
+     consegue rastrear até uma decisão que ela mesma tomou. */
+  const apr = tudoAprendido();
+  const aprHTML = !apr.length ? ''
+    : '<div class="sec-h">O que aprendi vendo você trabalhar <span class="chip c-ok">'+apr.length+'</span>'
+      +'<span style="font-weight:400;font-size:12px;color:var(--fg-muted)">providências que você mesma já mandou</span></div>'
+      +'<div class="tw"><table><thead><tr><th>Tipo de publicação</th>'
+      +'<th>A providência que você manda</th><th>Vezes</th><th></th></tr></thead><tbody>'
+      +apr.map(a=>'<tr data-rotulo="'+esc(a.rotulo)+'">'
+        +'<td><b>'+esc(a.rotulo)+'</b></td>'
+        +'<td>'+esc(a.texto)+'</td>'
+        +'<td class="mono">'+a.vezes+' de '+a.total+'</td>'
+        +'<td style="white-space:nowrap"><button class="btn btn-sm t-fixar" '
+        +'title="Vira uma tese, com gatilhos próprios, para valer também em publicações parecidas">Virar tese</button></td>'
+      +'</tr>').join("")+'</tbody></table></div>'
+      +'<div class="note" style="margin-top:10px">Isto não é regra nem tese: é só o que você repetiu. '
+      +'Na triagem, publicação desse tipo já chega com o <b>seu</b> texto no lugar do padrão. '
+      +'Se você passar a distribuir diferente, o painel passa a sugerir o novo sozinho.</div>';
+
+  if(!S.teses.length){
+    box.innerHTML = base+'<div class="empty"><h3>A memória está vazia</h3>'
+      +'<p>Use <b>Salvar na memória</b> na triagem, ou cadastre uma tese direto aqui. '
+      +'A partir daí o painel reconhece sozinho publicações parecidas e já sugere a providência.</p></div>'
+      +aprHTML;
+    return;
+  }
+  box.innerHTML = base+'<div class="tw"><table><thead><tr>'
+    +'<th>Tese</th><th>Providência</th><th>Prazo</th><th>Gatilhos</th><th>Usos</th><th></th>'
+    +'</tr></thead><tbody>'
+    +S.teses.slice().sort((a,b)=>(b.vezes_usada||0)-(a.vezes_usada||0)).map(t=>'<tr data-id="'+esc(t.id)+'">'
+      +'<td><b>'+esc(t.rotulo)+'</b>'+(t.tese?'<div style="font-size:11.5px;color:var(--fg-muted);margin-top:2px">'+esc(t.tese)+'</div>':'')+'</td>'
+      +'<td>'+esc(t.providencia)+'</td>'
+      +'<td class="mono">'+(t.prazo_dias?t.prazo_dias+"d":"—")+'</td>'
+      +'<td style="font-size:11.5px;color:var(--fg-muted);overflow-wrap:anywhere">'+esc((t.gatilhos||[]).join(" · "))+'</td>'
+      +'<td class="mono">'+(t.vezes_usada||0)+'</td>'
+      +'<td style="white-space:nowrap"><button class="btn btn-sm t-edit">Editar</button> '
+        +'<button class="btn btn-sm t-del">×</button></td>'
+    +'</tr>').join("")+'</tbody></table></div>'+aprHTML;
+}
+
+/* ============================================================
+   AGENDA — Google Agenda + prazos fatais
+   ============================================================ */
+const CAL = "Google Calendar";
+const GMAIL = "Gmail";
+
+const MSG_GMAIL = {
+  needs_reauth:"A conexão com o Gmail expirou. Reconecte em claude.ai → Configurações → Conectores.",
+  server_not_connected:"O Gmail não está conectado nesta conta.",
+  not_in_manifest:"Este painel não está autorizado a usar o Gmail. Autorize o conector para a página.",
+  approval_required:"Autorize o painel a usar o seu Gmail e tente de novo.",
+  consent_required:"Autorize o painel a usar o seu Gmail e tente de novo.",
+  blocked_by_policy:"A política da organização bloqueia o envio por aqui.",
+  rate_limited:"Muitos envios seguidos. Espere um pouco e tente de novo.",
+  server_unavailable:"O Gmail não respondeu agora. CONFIRA NA SUA CAIXA DE SAÍDA se o e-mail saiu antes de mandar de novo."
+};
+
+/* ============================================================
+   "O advogado CUMPRIU?" — a única leitura de TEXTO do painel (v32)
+   ============================================================
+   Até aqui nada era interpretado: a baixa do "ok" casa por REMETENTE + DATA,
+   de propósito. Mas "recebi" e "já fiz" só se distinguem pelo que a pessoa
+   escreveu — não existe outro sinal. Então a regra foi levantada das respostas
+   REAIS da equipe (14 e-mails de nov/2026), nunca imaginada:
+
+     CUMPRIU  "ED juntado aos autos e andamento incluso no Exyon" (Clévio)
+              "Feito" (Rafaela) · "já inclui a petição no processo" (Isabelli)
+              "ED no peticiona e vinculado ao exyon" (Rebeka)
+              "ED anexado ao peticiona … andamento lançado no exyon" (Larissa)
+              "Manifestação no peticiona, servidor, bem como no exyon" (Rebeka)
+              "Lu, No peticiona." (Bárbara) · "Manifestação protocolada" (Gabriela)
+
+     NÃO      "os embargos estão salvos como RASCUNHO no Peticiona" (Clévio)
+              "Execução em curso. Inclusive, indico o risco…" (Gabriela)
+              "Estou aguardando o perito manifestar" (Isabelli)
+              "Uai, estranho. Veja se agora apareceu." (Bárbara)
+              "✅ … reagiu pelo Gmail" (reação, sem texto nenhum)
+
+   🔴 O caso do Clévio é a razão de o VETO ser testado ANTES da palavra
+   positiva: "rascunho no Peticiona" CONTÉM "peticiona" e não está protocolado.
+   Dar baixa nele tiraria da vista dela uma petição por fazer — o pior erro que
+   este painel pode cometer. Na dúvida o prazo fica em "confirmado" e continua
+   aparecendo. Nunca inverta essa ordem.
+*/
+const CUMPRIU = [
+  /\bpeticion(?:a|ado|ada|ei|ou)\b/i, /\bprotocol/i, /\bjuntad[oa]\b/i,
+  /\banexad[oa]\b/i, /\bincl(?:u[ií]|u[ií]da|u[ií]do|uso|usa)\b/i,
+  /\blan[çc]ad[oa]\b/i, /\bvinculad[oa]\b/i, /\bfeito\b/i, /\bcumprid[oa]\b/i,
+  /\bapresentad[oa]\b/i, /\benviad[oa]\b/i, /\bopost[oa]\b/i, /\bpeti[çc][ãa]o est[áa]\b/i
+];
+const NAO_CUMPRIU = [
+  /\brascunho\b/i, /\bminuta\b/i, /\bsalv[oa]s?\b/i, /\baguard/i, /\bem curso\b/i,
+  /\bainda\b/i, /\bpendente\b/i, /\bprorrog/i, /\breagiu pelo gmail\b/i,
+  /\bpreciso\b/i, /\bd[úu]vida\b/i, /\bamanh[ãa]\b/i, /\?/,
+  /\bn[ãa]o\s+(?:foi|fui|consegui|localizei|encontrei|est[áa]|ser[áa]|vou|deu|tem|h[áa]|aparece)/i,
+  /\b(?:vou|irei|farei|vamos|iremos|providenciarei)\b/i
+];
+
+/* 🔴 O snippet do Gmail EMENDA com o e-mail citado embaixo — que é o texto DELA.
+   Sem cortar, o painel leria as próprias palavras dela ("gentileza manifestar")
+   como se fossem a resposta do advogado. Corta no cabeçalho de citação e, por
+   garantia, em "escreveu:": depois dele vem sempre a mensagem original. */
+const soResposta = t => {
+  let s = String(t||"").replace(/ /g," ").replace(/\s+/g," ").trim();
+  s = s.replace(/\bEm\s+(?:seg|ter|qua|qui|sex|s[áa]b|dom)[a-zç]*\.?,?\s+\d{1,2}\s+de\s+[^]*/i,"");
+  s = s.replace(/\bescreveu:[^]*/i,"");
+  s = s.replace(/\bOn\s+\w{3},\s+[^]*?wrote:[^]*/i,"");
+  s = s.replace(/-{3,}\s*Mensagem\s+(?:original|encaminhada)[^]*/i,"");
+  return s.trim();
+};
+
+function analisarResposta(bruto){
+  const txt = soResposta(bruto);
+  if(!txt) return {cumpriu:false, frase:""};
+  const veto = NAO_CUMPRIU.some(re=>re.test(txt));
+  const pos  = CUMPRIU.some(re=>re.test(txt));
+  return {cumpriu: pos && !veto,
+          frase: txt.length>300 ? txt.slice(0,300)+"…" : txt};
+}
+
+/** Acha a conversa do Gmail de um prazo. Os enviados pelo painel já guardam o id
+    desde a v20; os anteriores são procurados pelo assunto, que é previsível. */
+async function acharThread(p){
+  if(p.gmail_thread_id) return p.gmail_thread_id;
+  if(!p.advogado_email) return "";
+  const assunto = (p.parte_contraria ? String(p.parte_contraria).toUpperCase()
+                                     : "PROCESSO "+p.processo) + " -- prazo judicial";
+  const r = await S.mcp.callTool(GMAIL, "search_threads", {
+    query: 'in:sent to:'+p.advogado_email+' subject:"'+assunto.replace(/"/g,"")+'"',
+    pageSize: 5, view: "THREAD_VIEW_IDS_ONLY"
+  });
+  const t = (r && r.payload) ? r.payload : r;
+  const th = (t && t.threads) || [];
+  return th.length ? th[0].id : "";
+}
+
+/**
+ * Baixa automática do "ok" — a dor original dela.
+ *
+ * Casa por REMETENTE + DATA, nunca pelo texto. Lendo os e-mails reais dela, as
+ * respostas são "ok", "Feito", "ED no peticiona", "Manifestação protocolada":
+ * curtas, variadas, e quase nunca repetem o número do processo. Interpretar texto
+ * erraria — e errar PARA MAIS é o pior erro possível aqui: o painel diria que
+ * alguém confirmou quando não confirmou, e o prazo sumiria da fila de cobrança.
+ * Por isso só conta como resposta a mensagem do PRÓPRIO advogado do prazo,
+ * posterior ao envio. Resposta do Louis ou dela mesma não vale.
+ *
+ * v32 — além do "ok", dá baixa no CUMPRIDO. Quem decide é `analisarResposta`,
+ * com a regra levantada das respostas reais da equipe. Duas garantias:
+ *   · a frase que motivou a baixa fica gravada em `entregue_prova` e aparece
+ *     na tela — nada é marcado sem que ela possa ver por quê;
+ *   · o botão "↶ não cumpriu" devolve o prazo para "confirmado" num clique.
+ * Prazos já em "confirmado" também são reconferidos: é comum o advogado
+ * responder "ok" primeiro e "protocolado" dias depois, na mesma conversa.
+ */
+async function conferirRespostas(btn){
+  if(!S.mcp){ toast("A leitura do e-mail não está disponível nesta visualização."); return; }
+  const alvo = S.prazos.filter(p => (p.status==="pendente" || p.status==="ok")
+                                 && p.enviado_em && p.advogado_email);
+  if(!alvo.length){ toast("Nenhum prazo aguardando resposta no momento."); return; }
+  const antes = btn ? btn.innerHTML : "";
+  if(btn){ btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Conferindo…'; }
+  let cumpridos = 0, confirmados = 0, semConversa = 0, erros = 0;
+  for(const p of alvo){
+    try{
+      const threadId = await acharThread(p);
+      if(!threadId){ semConversa++; continue; }
+      /* MINIMAL traz o `snippet` — o começo da resposta — sem arrastar o e-mail
+         inteiro (há conversas de 300 KB aqui). METADATA_ONLY não traz texto. */
+      const r = await S.mcp.callTool(GMAIL, "get_thread",
+        {threadId, messageFormat:"MINIMAL"});
+      const t = (r && r.payload) ? r.payload : r;
+      const msgs = (t && t.messages) || [];
+      const dele = String(p.advogado_email).toLowerCase();
+      const envio = Date.parse(p.enviado_em);
+      /* A ÚLTIMA resposta dele, não a primeira: quem disse "ok" na segunda e
+         "protocolado" na quinta cumpriu — o estado atual é o que vale. */
+      const respostas = msgs.filter(m => {
+        if(!String(m.sender||"").toLowerCase().includes(dele)) return false;
+        const q = Date.parse(m.date||"");
+        return q && envio && q > envio;
+      }).sort((a,b)=>Date.parse(a.date||0)-Date.parse(b.date||0));
+      const resposta = respostas.length ? respostas[respostas.length-1] : null;
+
+      const campos = p.gmail_thread_id ? {} : {gmail_thread_id:threadId};
+      let mudou = !p.gmail_thread_id;
+      if(resposta){
+        const a = analisarResposta(resposta.snippet || "");
+        if(a.frase && a.frase !== p.resposta_texto){ campos.resposta_texto = a.frase; mudou = true; }
+        if(a.cumpriu){
+          campos.status        = "entregue";
+          campos.data_entrega  = resposta.date || new Date().toISOString();
+          campos.entregue_por  = "email";
+          campos.entregue_prova= a.frase;
+          if(!p.data_ok) campos.data_ok = resposta.date || new Date().toISOString();
+          cumpridos++; mudou = true;
+        }else if(p.status !== "ok"){
+          campos.status      = "ok";
+          campos.data_ok     = resposta.date || new Date().toISOString();
+          campos.respondeu_em= resposta.date || "";
+          confirmados++; mudou = true;
+        }
+      }
+      if(mudou) await carimbar([p], campos);
+    }catch(_){ erros++; }
+  }
+  if(btn){ btn.disabled = false; btn.innerHTML = antes; }
+  const partes = [];
+  if(cumpridos)   partes.push(cumpridos+(cumpridos>1?" prazos cumpridos":" prazo cumprido"));
+  if(confirmados) partes.push(confirmados+(confirmados>1?" confirmados (sem cumprir)":" confirmado (sem cumprir)"));
+  if(!cumpridos && !confirmados) partes.push("Nenhuma resposta nova");
+  if(semConversa) partes.push(semConversa+" sem conversa no Gmail");
+  if(erros) partes.push(erros+" não deu para conferir");
+  toast(partes.join(" · ")+".", 6000);
+}
+
+/**
+ * Envia o e-mail de distribuição pelo Gmail dela.
+ * `callTool` é o braço de AÇÃO: roda uma vez, no clique — nunca em `watchTool`,
+ * nunca no carregamento da página.
+ * Trava de segurança: só manda para endereço que está em `advogados`. Um erro de
+ * digitação no cadastro não pode virar e-mail com publicação judicial para fora.
+ */
+async function enviarPeloGmail({destinatario, copia, assunto, corpo, anexos}){
+  if(!S.mcp) throw Object.assign(new Error("O envio não está disponível nesta visualização. Abra o painel pelo Claude."), {code:"sem_mcp"});
+  const alvo = String(destinatario||"").toLowerCase();
+  if(!alvo) throw Object.assign(new Error("Esse advogado está sem e-mail cadastrado."), {code:"sem_email"});
+  // O próprio endereço dela sempre passa: é como ela testa sem entrar na equipe
+  // (entrar na equipe a colocaria de volta na distribuição de prazos).
+  const euMesma = !!S.euEmail && alvo === String(S.euEmail).toLowerCase();
+  const conhecido = euMesma || S.advs.some(a => String(a.email||"").toLowerCase() === alvo);
+  if(!conhecido) throw Object.assign(new Error("Esse endereço não está na sua equipe — não envio para fora do cadastro."), {code:"desconhecido"});
+  const input = {to:[destinatario], subject:assunto, body:corpo, includeSignature:true};
+  if(copia) input.cc = [copia];
+  return S.mcp.callTool(GMAIL, "send_message", (anexos && anexos.length) ? {...input, attachments:anexos} : input);
+}
+
+/** Data local do evento (o Google devolve com o fuso, ex.: 2026-11-03T10:15:00-03:00). */
+const evData = ev => (ev?.start?.dateTime || ev?.start?.date || "").slice(0,10);
+const evHora = ev => (ev?.start?.dateTime||"").slice(11,16);
+
+/** Link de videoconferência que o próprio evento carrega. */
+function evLink(ev){
+  const u = ev?.conferenceData?.videoEntryPoint?.uri;
+  if(u) return u;
+  const m = String(ev?.description||"").match(/https:\/\/(teams\.microsoft\.com|meet\.google\.com|[\w.-]*zoom\.us)\/\S+/);
+  return m ? m[0].replace(/[<>,;)]+$/,"") : "";
+}
+const soDigitos = s => String(s||"").replace(/\D/g,"");
+
+/** Número de processo no formato do CNJ — NNNNNNN-DD.AAAA.J.TR.OOOO.
+    Pedido dela em 19/11/2026: *"arruma esses números no painel, prefiro ele
+    assim 0700617-28.2023.8.02.0018"*.
+
+    ⚠️ A causa não estava na tela, estava no DADO. Até 18/11 o dia guardado vinha
+    com `processo` COM máscara e `processo_raw` só com os dígitos. No dia 19/11 os
+    dois campos vieram TROCADOS — `processo` com os 20 dígitos crus
+    ("10509321220234063800") e a máscara em `processo_raw` — nas 141 publicações
+    do dia, sem exceção. Por isso o painel parou de confiar no NOME do campo:
+    monta a máscara a partir dos dígitos, de qualquer campo que traga os 20.
+
+    Recebe vários candidatos e usa o primeiro com 20 dígitos. Número que não tem
+    20 volta como veio: na tela, um número estranho é melhor do que um número
+    inventado. */
+function fmtProc(...vals){
+  for(const v of vals){
+    const d = soDigitos(v);
+    if(d.length === 20)
+      return d.slice(0,7)+"-"+d.slice(7,9)+"."+d.slice(9,13)+"."
+           + d.slice(13,14)+"."+d.slice(14,16)+"."+d.slice(16,20);
+  }
+  return String(vals.find(v=>v) || "");
+}
+
+/** Número de processo no padrão CNJ, com ou sem a pontuação. */
+const RE_PROC = /\d{7}-?\d{2}\.?\d{4}\.?\d\.?\d{2}\.?\d{4}/;
+
+/** Tira HTML da descrição MAS preserva as quebras de linha (os campos vêm um por linha). */
+const limpaDesc = h => String(h||"")
+  .replace(/<br\s*\/?>/gi,"\n").replace(/<\/p>/gi,"\n").replace(/<[^>]+>/g,"")
+  .replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/[ \t]+/g," ").trim();
+
+/** Nome de uma pessoa a partir do e-mail, usando a equipe cadastrada quando houver. */
+function nomeDoEmail(email, displayName, advs){
+  if(displayName) return displayName;
+  const e = String(email||"").toLowerCase();
+  const a = (advs||[]).find(x=>String(x.email||"").toLowerCase()===e);
+  if(a) return a.nome;
+  return e.split("@")[0].split(/[._-]/)
+    .map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(" ");
+}
+
+/** O convite que o TRIBUNAL manda (traz o link). Não é a linha de pauta dela. */
+const ehConviteTribunal = ev =>
+  /^LINK\s+AUDIENCIA/i.test(String(ev.summary||""))
+  || (!ev?.organizer?.self && /\.jus\.br$/i.test(String(ev?.organizer?.email||"")));
+
+/**
+ * É uma audiência da pauta dela? A agenda tem TRÊS formatos:
+ *  1. emoji estruturado  — "📋 DADOS DA AUDIÊNCIA" com Parte/Processo/Modalidade/Responsável
+ *  2. texto em <p>       — mesmas linhas, embrulhadas em HTML
+ *  3. enxuto (mais novo) — processo e parte no TÍTULO, descrição só com a modalidade
+ *                          ("virtual, verificar link") e o responsável nos convidados
+ */
+function ehAudiencia(ev){
+  if(ehConviteTribunal(ev)) return false;
+  const s = String(ev.summary||""), d = limpaDesc(ev.description);
+  if(/DADOS DA AUDI[ÊE]NCIA/i.test(d)) return true;
+  if(/Processo:/i.test(d) && /Modalidade:/i.test(d)) return true;
+  if(/audi[êe]ncia/i.test(s) && (RE_PROC.test(s) || /virtual|presencial|requerimento/i.test(d))) return true;
+  return false;
+}
+
+/** Lê a audiência em qualquer um dos três formatos. */
+function parseAudiencia(ev, advs){
+  const d = limpaDesc(ev.description), s = String(ev.summary||"");
+  const campo = re => { const m=d.match(re); return m ? m[1].trim() : ""; };
+
+  let processo = campo(/Processo:\s*([^\n\r]+)/i);
+  let mp = (processo||"").match(RE_PROC) || s.match(RE_PROC);
+  processo = mp ? mp[0] : processo;
+
+  // Formato 3: "Audiência Conciliação - Jose Ferreira Miranda - 1006283-77.2026.8.13.0194"
+  let parte = campo(/Parte:\s*([^\n\r]+)/i);
+  if(!parte){
+    const ped = s.split(/\s+-\s+/).slice(1)
+      .find(x => !RE_PROC.test(x) && /[A-Za-zÀ-ÿ]{3}/.test(x));
+    parte = ped ? ped.trim() : s.replace(/^[^\w\dÀ-ÿ]+/,"").trim();
+  }
+
+  let modalidade = campo(/Modalidade:\s*([^\n\r]+)/i);
+  if(!modalidade && /virtual|presencial|requerimento/i.test(d)) modalidade = d.split("\n")[0].slice(0,90);
+
+  let responsavel = campo(/Respons[áa]vel:\s*([^\n\r]+)/i);
+  if(!responsavel){
+    responsavel = (ev.attendees||[])
+      .filter(a => !a.self && /@lucchesidolabela\.com\.br$/i.test(String(a.email||"")))
+      .map(a => nomeDoEmail(a.email, a.displayName, advs)).join(", ");
+  }
+
+  return {
+    id: ev.id,
+    titulo: s.replace(/^[^\w\dÀ-ÿ]+/,"").trim(),
+    data: evData(ev), hora: evHora(ev) || campo(/Hor[áa]rio:\s*([^\n\r]+)/i),
+    parte, processo: fmtProc(processo), processoNum: soDigitos(processo),
+    tipo: campo(/Tipo:\s*([^\n\r]+)/i),
+    modalidade, responsavel,
+    link: evLink(ev), htmlLink: ev.htmlLink||""
+  };
+}
+
+/** Situação do link: é aqui que mora a dor — "virtual, verificar link". */
+function statusLink(a, todos){
+  const mod = (a.modalidade||"").toLowerCase();
+  if(/presencial/.test(mod) && !/virtual/.test(mod)) return {k:"presencial", chip:'<span class="chip c-mute">presencial</span>'};
+  if(a.link) return {k:"ok", chip:'<span class="chip c-ok">link no evento</span>'};
+  // O tribunal manda o link num convite separado, citando o processo na forma curta
+  // "4002499-38" (7 dígitos + dígito verificador). Cruza por esse trecho, tolerando
+  // o hífen, o ponto ou nada entre as duas partes.
+  if(a.processoNum.length>=9){
+    const re = new RegExp(a.processoNum.slice(0,7)+"[-.\\s]?"+a.processoNum.slice(7,9));
+    const solto = todos.find(e => e.id!==a.id && evLink(e)
+      && re.test(String(e.summary||"")+" "+String(e.description||"")));
+    if(solto) return {k:"achado", link:evLink(solto), chip:'<span class="chip c-ok">link chegou — do tribunal</span>'};
+  }
+  if(/verificar link/.test(mod)) return {k:"faltando", chip:'<span class="chip c-crit">falta o link</span>'};
+  if(/nos autos/.test(mod))      return {k:"autos", chip:'<span class="chip c-warn">link nos autos</span>'};
+  if(/virtual/.test(mod))        return {k:"faltando", chip:'<span class="chip c-crit">falta o link</span>'};
+  return {k:"indef", chip:'<span class="chip c-mute">a confirmar</span>'};
+}
+
+/** Assina os eventos do mês. watchTool é o braço de EXIBIÇÃO: ele mantém atualizado. */
+function assinarAgenda(){
+  if(!S.mcp) return;
+  if(S.calUnsub){ try{S.calUnsub()}catch(_){ } S.calUnsub=null; }
+  const y=S.mes.getFullYear(), m=S.mes.getMonth();
+  const ini = y+"-"+String(m+1).padStart(2,"0")+"-01T00:00:00";
+  const fim = iso8(new Date(y,m+1,0))+"T23:59:59";
+  S.calEstado="carregando"; renderAgenda();
+  S.calUnsub = S.mcp.watchTool(CAL, "list_events",
+    {startTime:ini, endTime:fim, orderBy:"startTime", pageSize:250},
+    ev=>{
+      if(ev.type==="data"){
+        const p = ev.result?.payload;
+        S.eventos = (p&&p.events) ? p.events : [];
+        S.calEstado="ok"; S.calErro=null;
+      }else{
+        const c = ev.error?.code;
+        // erros de autorização retiram o dado; os transitórios mantêm o último bom
+        if(["needs_reauth","server_not_connected","not_in_manifest","blocked_by_policy","approval_required","consent_required"].includes(c)){
+          S.eventos=[]; S.calEstado="negado";
+        }else{ S.calEstado = S.eventos.length ? "ok" : "erro"; }
+        S.calErro=c;
+      }
+      renderAgenda();
+    },
+    {cache:{staleTime:120000, gcTime:900000}}
+  );
+}
+
+const MSG_CAL = {
+  needs_reauth:"A conexão com o Google Agenda expirou. Reconecte em claude.ai → Configurações → Conectores.",
+  server_not_connected:"O Google Agenda não está conectado nesta conta. Adicione em claude.ai → Configurações → Conectores.",
+  selection_required:"Você tem mais de uma conta do Google Agenda. Escolha uma quando o Claude perguntar.",
+  not_in_manifest:"Este painel não está autorizado a ler sua agenda. Autorize o conector para a página.",
+  approval_required:"A leitura da agenda precisa da sua autorização.",
+  consent_required:"A leitura da agenda precisa da sua autorização.",
+  blocked_by_policy:"A política da organização bloqueia o acesso à agenda.",
+  server_unavailable:"O Google Agenda não respondeu agora. Tente de novo em instantes."
+};
+
+function renderAgenda(){
+  const y=S.mes.getFullYear(), m=S.mes.getMonth();
+  const mm = String(m+1).padStart(2,"0");
+  $("#mLabel").textContent = S.mes.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+  const first=new Date(y,m,1), start=new Date(first); start.setDate(1-first.getDay());
+  const hoje=iso8(new Date());
+
+  const auds = S.eventos.filter(ehAudiencia).map(e=>parseAudiencia(e,S.advs))
+    .sort((a,b)=>(a.data+a.hora).localeCompare(b.data+b.hora));
+  const outros = S.eventos.filter(e=>!ehAudiencia(e) && !ehConviteTribunal(e));
+
+  const przDia={}, audDia={};
+  S.prazos.filter(p=>!FECHADO.has(p.status) && p.prazo_fatal)
+    .forEach(p=>(przDia[p.prazo_fatal]=przDia[p.prazo_fatal]||[]).push(p));
+  auds.forEach(a=>(audDia[a.data]=audDia[a.data]||[]).push(a));
+
+  /* --- calendário --- */
+  let html='<div class="cal">'+["dom","seg","ter","qua","qui","sex","sáb"]
+    .map(d=>'<div class="cal-h">'+d+'</div>').join("");
+  for(let i=0;i<42;i++){
+    const d=new Date(start); d.setDate(start.getDate()+i);
+    const iso=iso8(d), fora=d.getMonth()!==m;
+    const pz=przDia[iso]||[], au=audDia[iso]||[];
+    const itens = [
+      ...au.map(a=>{ const s=statusLink(a,S.eventos);
+        return {cor: s.k==="faltando"?"c-crit":"c-accent", txt:"⚖ "+(a.hora||""),
+                t:a.titulo+" — "+(a.modalidade||"modalidade a confirmar")}; }),
+      ...pz.map(p=>({cor: iso<hoje?"c-crit":p.status==="pendente"?"c-warn":"c-info",
+                     txt:"⏰ "+(p.advogado_nome||"?").split(" ")[0],
+                     t:p.processo+" — "+p.providencia}))
+    ];
+    html+='<div class="cal-d'+(fora?' out':'')+(iso===hoje?' today':'')+'">'
+      +'<span class="cal-n">'+d.getDate()+'</span>'
+      +itens.slice(0,3).map(x=>'<span class="cal-e chip '+x.cor+'" title="'+esc(x.t)+'">'+esc(x.txt)+'</span>').join("")
+      +(itens.length>3?'<span class="cal-n">+'+(itens.length-3)+'</span>':'')
+      +'</div>';
+  }
+  html+='</div>';
+
+  /* --- estado da conexão --- */
+  if(S.calEstado==="indisponivel")
+    html+='<div class="note" style="margin-top:14px">Esta visualização não acessa o Google Agenda. '
+      +'Abra o painel pelo Claude para ver suas audiências aqui.</div>';
+  else if(S.calEstado==="carregando")
+    html+='<div class="note" style="margin-top:14px"><span class="spin"></span> Lendo sua agenda…</div>';
+  else if(S.calEstado==="negado"||S.calEstado==="erro")
+    html+='<div class="note" style="margin-top:14px;border-left-color:var(--crit)"><b>Agenda não carregada.</b> '
+      +esc(MSG_CAL[S.calErro] || "Não consegui ler sua agenda agora.")+'</div>';
+
+  /* --- audiências que precisam do link --- */
+  const faltando = auds.filter(a=>{const s=statusLink(a,S.eventos); return s.k==="faltando";});
+  const achados  = auds.filter(a=>{const s=statusLink(a,S.eventos); return s.k==="achado";});
+  if(achados.length)
+    html+='<div class="note" style="margin-top:14px;border-left-color:var(--ok)"><b>'+achados.length
+      +' audiência(s) já têm o link.</b> O tribunal mandou o link num convite separado e eu cruzei pelo número do processo — '
+      +'não precisa mais ficar cobrando a secretaria nesses casos.</div>';
+  if(faltando.length)
+    html+='<div class="note" style="margin-top:10px;border-left-color:var(--crit)"><b>'+faltando.length
+      +' audiência(s) ainda sem link.</b> São as que estão como "verificar link" ou virtual sem link no convite.</div>';
+
+  /* --- lista de audiências --- */
+  if(auds.length){
+    html+='<div class="sec-h">Audiências do mês <span class="chip c-mute">'+auds.length+'</span></div>'
+      +'<div class="card">'+auds.map(a=>{
+        const s=statusLink(a,S.eventos);
+        const link = a.link || s.link || "";
+        const passou = a.data < hoje;
+        return '<div class="aud"'+(passou?' style="opacity:.55"':'')+'>'
+          +'<div class="aud-top">'
+            +'<span class="aud-dia">'+brDate(a.data)+(a.hora?' · '+esc(a.hora):'')+'</span>'
+            +'<span class="aud-nome">'+esc(a.parte||a.titulo)+'</span>'+s.chip
+          +'</div>'
+          +'<div class="aud-meta">'
+            +(a.processo?'<span>Processo <b class="mono">'+esc(a.processo)+'</b></span>':'')
+            +(a.responsavel?'<span>Responsável <b>'+esc(a.responsavel)+'</b></span>':'')
+            +(a.tipo?'<span>'+esc(a.tipo)+'</span>':'')
+            +(a.modalidade?'<span>'+esc(a.modalidade)+'</span>':'')
+          +'</div>'
+          +(link||a.htmlLink?'<div class="acts">'
+            +(link?'<a class="btn btn-sm btn-primary" href="'+esc(link)+'" target="_blank" rel="noopener">Entrar na audiência</a>':'')
+            +(a.htmlLink?'<a class="btn btn-sm" href="'+esc(a.htmlLink)+'" target="_blank" rel="noopener">Abrir na agenda</a>':'')
+            +'</div>':'')
+        +'</div>';
+      }).join("")+'</div>';
+  }
+
+  /* --- prazos do mês --- */
+  const doMes = S.prazos.filter(p=>p.prazo_fatal && p.prazo_fatal.startsWith(y+"-"+mm) && !FECHADO.has(p.status));
+  html+='<div class="sec-h">Prazos fatais do mês <span class="chip c-mute">'+doMes.length+'</span></div>';
+  html+= doMes.length
+    ? '<div class="card">'+doMes.sort((a,b)=>a.prazo_fatal.localeCompare(b.prazo_fatal)).map(p=>
+        '<div class="aud"><div class="aud-top">'
+        +'<span class="aud-dia">'+brDate(p.prazo_fatal)+'</span>'
+        +'<span class="aud-nome">'+esc(p.providencia)+'</span>'+statusChip(p)+'</div>'
+        +'<div class="aud-meta"><span>Processo <b class="mono">'+esc(p.processo)+'</b></span>'
+        +'<span>Responsável <b>'+esc(p.advogado_nome||"—")+'</b></span>'
+        +'<span>'+esc(p.tribunal)+'</span></div></div>').join("")+'</div>'
+    : '<div class="empty"><p>Nenhum prazo fatal em aberto neste mês.</p></div>';
+
+  if(outros.length)
+    html+='<div class="note" style="margin-top:14px">Mais <b>'+outros.length
+      +'</b> compromisso(s) na sua agenda neste mês que não são audiências.</div>';
+
+  $("#agendaBox").innerHTML=html;
+}
+
+/* ============================================================
+   KPIs
+   ============================================================ */
+function atualizarKPIs(){
+  $("#kpiHoje").textContent = pubsFiltradas().length;
+  const ab = S.prazos.filter(p=>!FECHADO.has(p.status));
+  $("#kpiPend").textContent = ab.filter(p=>p.status==="pendente").length;
+  $("#kpiCrit").textContent = ab.filter(p=>{const d=diasUteisAte(p.prazo_fatal); return d!==null && d<=2;}).length;
+}
+function renderTudo(){ renderTriagem(); renderPrazos(); renderCumpridos(); renderCobranca(); renderEquipe(); renderMemoria(); renderAgenda(); atualizarKPIs(); }
+
+/* ============================================================
+   BANCO
+   ============================================================ */
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+
+async function salvar(col, id, dados){
+  if(!S.db){ toast("Banco indisponível nesta visualização."); return false; }
+  try{ await S.db.collection(col).doc(id).set(dados); return true; }
+  catch(e){
+    toast(e.code==="invalid_argument" ? "Você não tem permissão de escrita neste painel." : "Não consegui salvar. Tente de novo.");
+    return false;
+  }
+}
+async function remover(col,id){ if(!S.db) return; try{ await S.db.collection(col).doc(id).delete(); }catch(e){ toast("Não consegui remover."); } }
+
+function assinar(){
+  if(!S.db) return;
+  const liga=(col,chave,depois,ajusta)=>{
+    S.db.collection(col).onSnapshot(
+      snap=>{ S[chave]=snap.docs.map(d=>{ const o={id:d.id,...d.data()};
+                                          return ajusta ? ajusta(o) : o; });
+              depois&&depois(); },
+      err=>{ console.warn("db",col,err.code); }
+    );
+  };
+  liga("advogados","advs",()=>{ preencherSelects(); renderEquipe(); renderCobranca(); renderTriagem(); });
+  /* O número é arrumado NA LEITURA, não só na hora de desenhar a tela: prazo
+     gravado antes desta correção passa a aparecer com a máscara em TODA parte —
+     lista, e-mail do advogado, cobrança, agenda, resumo copiado — e, na primeira
+     vez que esse prazo for salvo de novo, o banco também fica arrumado.
+     Nada se perde: `processo_raw` guarda os dígitos, que é o que a busca por
+     número e o "já cuida deste processo" usam para casar. */
+  liga("prazos","prazos",()=>{ renderPrazos(); renderCumpridos(); renderCobranca(); renderEquipe(); renderAgenda();
+                               renderTriagem(); renderMemoria(); atualizarKPIs(); },
+       p=>({...p, processo: fmtProc(p.processo, p.processo_raw),
+                  processo_raw: soDigitos(p.processo_raw || p.processo)}));
+  liga("teses","teses",()=>{ renderMemoria(); });
+  liga("comarcas","comarcas",()=>{ renderComarcas(); });
+}
+
+function preencherSelects(){
+  const sel=$("#pAdv"), v=sel.value;
+  sel.innerHTML='<option value="">Todos</option>'+S.advs.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.nome)+'</option>').join("");
+  sel.value=v;
+}
+
+/* ============================================================
+   AÇÕES
+   ============================================================ */
+/* `extra` só é usado pelo "Já repassei": ele acrescenta `enviado_em` e o meio do
+   repasse ANTES da gravação, em vez de salvar e regravar por cima. `salvar` troca o
+   documento inteiro, então duas escritas seguidas seriam duas chances de ficar pela
+   metade. Ver modalJaRepassei(). */
+async function distribuir(pubId, el, extra){
+  const pub = S.pubs.find(p=>p.id===pubId); if(!pub) return;
+  const prov = el.querySelector(".i-prov").value.trim();
+  const dias = Number(el.querySelector(".i-dias").value)||0;
+  const advId= el.querySelector(".i-adv").value;
+  if(!prov){ toast("Escreva a providência antes de distribuir."); return; }
+  if(!advId){ toast("Escolha quem vai fazer."); return; }
+  const adv = S.advs.find(a=>a.id===advId);
+  const prz = dias ? calcPrazo(pub.data, dias) : null;
+  const s = S.sugestoes[pubId];
+  const id = uid();
+  const dados = {
+    publicacao_id:pub.id,
+    /* As publicações IDÊNTICAS a esta (mesmo ato, um `id` por destinatário) saem
+       da triagem junto com ela. Sem gravá-las aqui, a conferência das 10h31
+       acusaria as escondidas como esquecidas. Ver agruparIguais(). */
+    publicacao_ids:[pub.id, ...(S.irmas&&S.irmas[pub.id]||[])],
+    processo:pub.processo, processo_raw:pub.processoRaw,
+    tribunal:pub.tribunal, orgao:pub.orgao, regiao:pub.regiao, classe:pub.classe,
+    tipo_comunicacao:pub.tipo, rotulo:(s?s.rotulo:pub.cls.rotulo),
+    data_disponibilizacao:pub.data, publicacao:prz?prz.publicacao:null,
+    inicio_prazo:prz?prz.inicio:null, prazo_fatal:prz?prz.fatal:null, prazo_dias:dias,
+    providencia:prov, tese_id:(s?s.tese_id:pub.cls.teseId)||null,
+    advogado_id:advId, advogado_nome:adv?adv.nome:"", advogado_email:adv?adv.email||"":"",
+    distribuido_em:new Date().toISOString(), status:"pendente", data_ok:null,
+    enviado_em:null, cobrado_em:null, cobrancas:0,
+    parte_contraria:pub.parteContraria||"",
+    // o e-mail dela manda o teor INTEIRO, então o prazo precisa guardar o texto todo
+    link:pub.link, texto:pub.texto.slice(0,20000),
+    ...(extra||{})
+  };
+  const ok = await salvar("prazos", id, dados);
+  if(!ok) return null;
+  const teseId=(s?s.tese_id:pub.cls.teseId);
+  if(teseId){ const t=S.teses.find(x=>x.id===teseId);
+    if(t) await salvar("teses", teseId, {...t, id:undefined, vezes_usada:(t.vezes_usada||0)+1, ultimo_uso:new Date().toISOString()}); }
+  // Devolve o prazo gravado para a triagem já abrir o e-mail dele.
+  return {id, ...dados};
+}
+
+/* "Fica comigo" — ela resolve sem repassar a ninguém. Pedido de 13/11/2026:
+   *"vai ter casos que eu não vou repassar pq provavelmente eu tomarei a
+   providência"* (suspensão que ela lança no sistema interno, por exemplo).
+   Grava como prazo FECHADO (`status:"eu"`), com o que ela fez no lugar da
+   providência. Sem isso, tudo que ela resolve sozinha apareceria como esquecido
+   na conferência do fim do dia. */
+/* Grava uma publicação como FECHADA — sem advogado, sem relógio de cobrança.
+   Usada pelos dois caminhos que tiram algo da triagem deixando rastro:
+   "Já tratado (eu)" (status `eu`) e "Sem providência" (status `sem_prov`).
+   O rastro é o ponto: sem ele a conferência do fim do dia acusa como esquecida. */
+async function gravarFechado(pub, dias, status, providencia){
+  const prz = dias ? calcPrazo(pub.data, dias) : null;
+  return salvar("prazos", uid(), {
+    publicacao_id:pub.id,
+    publicacao_ids:[pub.id, ...(S.irmas&&S.irmas[pub.id]||[])],
+    processo:pub.processo, processo_raw:pub.processoRaw,
+    tribunal:pub.tribunal, orgao:pub.orgao, regiao:pub.regiao, classe:pub.classe,
+    tipo_comunicacao:pub.tipo, rotulo:pub.cls.rotulo,
+    data_disponibilizacao:pub.data, publicacao:prz?prz.publicacao:null,
+    inicio_prazo:prz?prz.inicio:null, prazo_fatal:prz?prz.fatal:null, prazo_dias:dias,
+    providencia, tese_id:pub.cls.teseId||null,
+    advogado_id:"", advogado_nome:"", advogado_email:"",
+    distribuido_em:new Date().toISOString(), status, data_ok:null,
+    enviado_em:null, cobrado_em:null, cobrancas:0,
+    tratado_em:new Date().toISOString(),
+    parte_contraria:pub.parteContraria||"",
+    link:pub.link, texto:pub.texto.slice(0,20000)
+  });
+}
+
+function modalFicaComigo(pub, cartao){
+  /* As opções são BOTÕES, e o campo abre VAZIO. Pedido dela em 17/11/2026:
+     *"faz com que eu escolha a opção sem precisar apagar"* — antes o campo já vinha
+     com a primeira opção escrita dentro e um `datalist`, então para usar outra ela
+     tinha que apagar o texto antes. Clicar num botão preenche o campo, e ela ainda
+     pode escrever por cima. "Enviei para o Louis" foi acrescentada no mesmo pedido. */
+  const opcoes = ["Lancei no sistema interno","Enviei para o Louis",
+                  "Enviei para a Ludmila","Já providenciei",
+                  "Intimação para a parte autora","Intimação para a secretaria"];
+  modal('<h2>Já tratado (eu)</h2>'
+   +'<div class="note" style="margin-bottom:12px">Esta publicação sai da triagem e '
+   +'<b>não vai para ninguém</b>. Fica registrada como tratada por você — é o que impede '
+   +'a conferência do fim do dia de acusar como esquecida.</div>'
+   +'<div class="f"><label>Processo</label><input readonly value="'+esc(pub.processo)+'"></div>'
+   +'<div class="f"><label for="euQue">O que você fez</label>'
+   +'<div id="euOps" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
+   +opcoes.map(o=>'<button type="button" class="btn eu-op" data-op="'+esc(o)+'">'
+                 +esc(o)+'</button>').join("")
+   +'</div>'
+   +'<input id="euQue" placeholder="ou escreva do seu jeito">'
+   +'<span class="hint">Clique numa opção — ela entra no campo e você pode ajustar.</span></div>'
+   +'<div class="acts"><button class="btn btn-primary" id="euSalvar">Registrar</button>'
+   +'<button class="btn" id="euCancel">Cancelar</button></div>');
+  document.querySelectorAll(".eu-op").forEach(b => b.onclick = () => {
+    $("#euQue").value = b.dataset.op;
+    document.querySelectorAll(".eu-op").forEach(x => x.classList.remove("btn-primary"));
+    b.classList.add("btn-primary");
+  });
+  $("#euSalvar").onclick = async ev=>{
+    const que = $("#euQue").value.trim();
+    /* O campo agora abre vazio, então não dá para gravar um rótulo genérico por
+       descuido: o registro do que ela fez é justamente o rastro que a conferência
+       do fim do dia usa. Sem escolha, não grava. */
+    if(!que){ toast("Escolha uma opção ou escreva o que você fez."); return; }
+    ev.target.disabled = true;
+    const dias = Number(cartao.querySelector(".i-dias").value)||0;
+    const ok = await gravarFechado(pub, dias, "eu", que);
+    fechar();
+    if(ok) toast("Registrado: "+que+".", 3200);
+  };
+  $("#euCancel").onclick = fechar;
+}
+
+/* "Já repassei" — o prazo FICA COM ALGUÉM da equipe, mas o painel não manda nada.
+   Pedido dela em 18/11/2026: *"uma maneira de eu deixar o prazo com alguém da equipe
+   sem enviar o email, posso ter enviado eu mesmo direto do meu gmail mas queria deixar
+   no painel para acompanhar"*.
+
+   Antes disso o único caminho era distribuir, deixar o modal de e-mail abrir e clicar
+   "Já enviei" — ou seja, passar por uma tela de e-mail que ela não ia usar.
+
+   O que faz: grava o prazo exatamente como a distribuição normal, só que já com
+   `enviado_em`. É esse campo, e só ele, que liga o relógio da espera e tira o prazo
+   da fila "A enviar" (que é dela) para a "Sem resposta" (que é do advogado).
+
+   ⚠️ `repassado_por` não é enfeite: só o que saiu do Gmail dela tem conversa para o
+   "Conferir respostas" procurar (ver acharThread). WhatsApp e conversa de corredor
+   não têm — e o painel precisa dizer isso a ela em vez de deixar parecer que a baixa
+   automática cobre tudo. */
+const MEIOS_REPASSE = ["Pelo meu Gmail","WhatsApp","Pessoalmente","Outro meio"];
+
+function modalJaRepassei(pub, cartao){
+  const advId = cartao.querySelector(".i-adv").value;
+  const adv   = S.advs.find(a=>a.id===advId);
+  if(!adv){ toast('Escolha em "Quem faz…" com quem o prazo ficou.'); return; }
+  const prov = cartao.querySelector(".i-prov").value.trim();
+  if(!prov){ toast("Escreva a providência antes de registrar."); return; }
+  const dias = Number(cartao.querySelector(".i-dias").value)||0;
+  const prz  = dias ? calcPrazo(pub.data, dias) : null;
+  modal('<h2>Já repassei</h2>'
+   +'<div class="note" style="margin-bottom:12px">Deixa o prazo com <b>'+esc(adv.nome)
+   +'</b> e <b>não manda e-mail nenhum</b> — é para quando você já passou por fora do painel. '
+   +'A espera começa a contar agora, e ele entra na aba <b>Cobrança</b> como qualquer outro.</div>'
+   +'<div class="f"><label>Processo</label><input readonly value="'+esc(pub.processo)+'"></div>'
+   +'<div class="f"><label>Fica com</label><input readonly value="'+esc(adv.nome)+'"></div>'
+   +'<div class="f"><label>Providência</label><input readonly value="'+esc(prov)+'"></div>'
+   +'<div class="f"><label>Prazo fatal</label><input readonly value="'
+     +esc(prz ? brDate(prz.fatal)+" · "+dias+" dias úteis" : "sem prazo definido")+'">'
+   +(prz?'':'<span class="hint">Ponha os dias no cartão antes, se quiser data fatal.</span>')+'</div>'
+   +'<div class="f"><label for="jrComo">Como você repassou</label>'
+   +'<div id="jrOps" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
+   +MEIOS_REPASSE.map(o=>'<button type="button" class="btn jr-op" data-op="'+esc(o)+'">'
+                 +esc(o)+'</button>').join("")
+   +'</div>'
+   +'<input id="jrComo" placeholder="ou escreva do seu jeito">'
+   +'<span class="hint">Só o que saiu do seu Gmail tem conversa para o botão '
+   +'<b>Conferir respostas</b> achar. No resto, a baixa é na mão — por isso fica registrado.</span></div>'
+   +'<div class="acts"><button class="btn btn-primary" id="jrSalvar">Registrar</button>'
+   +'<button class="btn" id="jrCancel">Cancelar</button></div>');
+  document.querySelectorAll(".jr-op").forEach(b => b.onclick = () => {
+    $("#jrComo").value = b.dataset.op;
+    document.querySelectorAll(".jr-op").forEach(x => x.classList.remove("btn-primary"));
+    b.classList.add("btn-primary");
+  });
+  $("#jrSalvar").onclick = async ev=>{
+    const como = $("#jrComo").value.trim();
+    /* Mesma regra do "Já tratado (eu)": sem escolha, não grava. O meio é o que
+       explica, depois, por que a baixa automática não achou resposta nenhuma. */
+    if(!como){ toast("Escolha como você repassou, ou escreva."); return; }
+    ev.target.disabled = true;
+    const p = await distribuir(pub.id, cartao, {
+      enviado_em: new Date().toISOString(),
+      repassado_fora: true,
+      repassado_por: como
+    });
+    fechar();
+    if(p) toast("Prazo registrado com "+String(adv.nome).split(" ")[0]+" — "+como
+                +". Nenhum e-mail foi enviado.", 4600);
+  };
+  $("#jrCancel").onclick = fechar;
+}
+
+/* "Ver a publicação" — pedido dela em 19/11/2026, olhando uma linha da aba
+   Cumpridos: *"quero ter acesso a essas publicações quando eu busco"*.
+
+   Na Triagem o teor está à vista no cartão. Depois que a publicação vira prazo
+   ele some da tela: a linha mostra processo, providência e status, e para reler
+   o que o tribunal escreveu ela teria que ir ao DJEN de novo — justamente o que
+   o painel existe para evitar.
+
+   ⚠️ O texto JÁ estava gravado em cada prazo (`texto`, até 20.000 caracteres,
+   desde a v11) — faltava só por onde abrir. Não é dado novo, é dado escondido. */
+function modalPublicacao(p){
+  const t = String(p.texto||"").trim();
+  const linhas = [
+    ["Processo",           p.processo],
+    ["Tribunal",           p.tribunal],
+    ["Órgão",              p.orgao],
+    ["Classe",             p.classe],
+    ["Parte contrária",    p.parte_contraria],
+    ["Disponibilizado em", p.data_disponibilizacao
+                             ? brDate(String(p.data_disponibilizacao).slice(0,10)) : ""],
+    ["Classificação",      p.rotulo],
+    ["Providência",        p.providencia],
+    ["Responsável",        p.advogado_nome],
+    ["Prazo fatal",        p.prazo_fatal
+                             ? brDate(p.prazo_fatal)
+                               + (p.prazo_dias ? " · "+p.prazo_dias+" dias úteis" : "")
+                             : ""]
+  ].filter(x => String(x[1]||"").trim());
+  modal('<h2>Publicação</h2>'
+   +'<div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;'
+     +'font-size:12.5px;margin-bottom:14px">'
+   + linhas.map(([k,v]) =>
+       '<span style="color:var(--fg-faint);white-space:nowrap">'+esc(k)+'</span>'
+       +'<span'+(k==="Processo"?' class="mono"':'')
+       +' style="overflow-wrap:anywhere">'+esc(v)+'</span>').join("")
+   +'</div>'
+   +(t
+      ? '<div class="f"><label>Teor publicado</label>'
+        +'<div style="max-height:42vh;overflow:auto;background:var(--surface-2);'
+        +'border:1px solid var(--line);border-radius:6px;padding:11px;font-size:12.5px;'
+        +'line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere">'+esc(t)+'</div></div>'
+      /* Prazo antigo ou de recuperação pode não ter teor. Dizer isso é melhor do
+         que mostrar uma caixa vazia e ela achar que a publicação veio em branco. */
+      : '<div class="note">Este prazo foi gravado <b>sem o teor da publicação</b> — '
+        +'acontece nos lançamentos mais antigos e nos de recuperação. '
+        +(p.link ? 'Use "Abrir no tribunal" abaixo.'
+                 : 'Procure pelo número do processo no site do tribunal.')
+        +'</div>')
+   +'<div class="acts">'
+   +(t?'<button class="btn btn-primary" id="pubCopiar">Copiar teor</button>':'')
+   +(p.link?'<a class="btn" href="'+esc(p.link)+'" target="_blank" rel="noopener">Abrir no tribunal</a>':'')
+   +'<button class="btn" id="pubFechar" style="margin-left:auto">Fechar</button></div>');
+  const bc = $("#pubCopiar");
+  if(bc) bc.onclick = async () => {
+    try{ await navigator.clipboard.writeText(t); toast("Teor copiado."); }
+    catch(_){ toast("Não consegui copiar — selecione o texto e use Ctrl+C."); }
+  };
+  $("#pubFechar").onclick = fechar;
+}
+
+function modal(html){ $("#modal").innerHTML=html; $("#ov").hidden=false; }
+function fechar(){ $("#ov").hidden=true; }
+
+/** Saudação pelo horário do computador dela — pedido de 13/11/2026, no lugar do "Oi".
+    Vale na hora em que o e-mail é GERADO, que é quando ela vai mandar. */
+function saudacao(){
+  const h = new Date().getHours();
+  return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+}
+
+/** Abertura no formato REAL dela, copiado de um e-mail enviado em 12/11/2026:
+    o nome, linha em branco, e a saudação minúscula na linha seguinte. */
+function abertura(nome){
+  const primeiro = String(nome||"").split(" ")[0];
+  const s = saudacao().toLowerCase()+".";
+  return primeiro ? primeiro+",\n\n"+s : saudacao()+".";
+}
+
+/** O "Resumo:" dela é o começo do teor, cortado com reticências. */
+const resumoCurto = t => { const s=String(t||"").trim();
+  return s.length > 300 ? s.slice(0,300)+"..." : s; };
+
+/** Louis entra em CÓPIA em tudo que sai — pedido dela em 13/11/2026.
+    Acha pelo id do cadastro e, se não achar, pelo nome. Quando o próprio Louis
+    é o destinatário, não duplica. Se ele não estiver cadastrado, devolve vazio
+    em vez de inventar endereço: endereço do escritório não se deduz. */
+function emailCopia(destinatario){
+  const louis = S.advs.find(a=>a.id==="a-louis")
+             || S.advs.find(a=>/louis/i.test(String(a.nome||"")));
+  const e = (louis && louis.email) ? String(louis.email) : "";
+  if(!e) return "";
+  return e.toLowerCase() === String(destinatario||"").toLowerCase() ? "" : e;
+}
+
+/** A urgência de um prazo fatal em português legível — "faltam 0 dias úteis" não é frase. */
+function urgenciaTexto(iso){
+  const d = diasUteisAte(iso);
+  if(d===null) return "";
+  if(d<0) return "JÁ VENCEU";
+  if(iso===iso8(new Date())) return "VENCE HOJE";
+  if(d===0) return "vence em "+brDate(iso);
+  return "faltam "+d+(d>1?" dias úteis":" dia útil");
+}
+
+/* ---- e-mail de distribuição ----
+   Formato COPIADO de um e-mail real dela (12/11/2026), não inventado:
+     Larissa,            ← nome, linha em branco, saudação minúscula
+     bom dia.
+     <número do processo>
+     <providência>
+     Parte contrária: … / Tribunal: …
+     Resumo: <começo do teor, cortado em 300>
+     Teor da publicação: entre duas linhas de sublinhados
+   ⚠️ NÃO leva data fatal: ela não põe, e o controle do prazo é do painel.
+   ⚠️ NÃO leva assinatura: o Gmail dela já acrescenta "Atenciosamente" com o logo
+      do escritório. Repetir aqui sairia duplicado no e-mail dela. */
+function gerarEmail(lista, adv){
+  const n = lista.length;
+  const p0 = lista[0] || {};
+  const trib = String(p0.tribunal||"").toLowerCase();
+  const assunto = n===1
+    ? (p0.parte_contraria ? String(p0.parte_contraria).toUpperCase() : "PROCESSO "+p0.processo)
+      +" -- prazo judicial"+(trib ? " -- "+trib : "")
+    : n+" prazos judiciais -- "+brDate(iso8(new Date()));
+  const bloco = p =>
+      p.processo+"\n\n"
+    + String(p.providencia||"").trim()+"\n\n"
+    + (p.parte_contraria ? "Parte contrária: "+p.parte_contraria+"\n" : "")
+    + "Tribunal: "+(p.tribunal||"")+"\n\n"
+    + "Resumo:\n\n"+resumoCurto(p.texto)+"\n\n"
+    + "Teor da publicação:\n\n_________________________\n\n"
+    + String(p.texto||"").trim()+"\n\n_________________________";
+  const corpo = abertura(adv?.nome)+"\n\n"+lista.map(bloco).join("\n\n\n");
+  const destinatario = adv?.email||"";
+  return {assunto, corpo, destinatario, copia:emailCopia(destinatario)};
+}
+
+/* `opts.previa` = a publicação ainda NÃO foi distribuída: nada está gravado, então
+   não há envio real nem "Já enviei" para registrar. Serve para ela ver como o
+   e-mail fica — e mandar um teste para si mesma — antes de criar o prazo. */
+function modalEmail(lista, adv, opts){
+  if(!lista.length){ toast("Não há prazos em aberto para esse advogado."); return; }
+  const previa = !!(opts && opts.previa);
+  const {assunto, corpo, destinatario, copia} = gerarEmail(lista, adv);
+  // Só os que ainda esperam resposta e cujo e-mail nunca foi registrado como enviado.
+  const naoEnviados = previa ? [] : lista.filter(p=>p.status==="pendente" && !p.enviado_em);
+  // Sem exigir destinatário aqui: os campos são editáveis e a validação é no clique.
+  const podeEnviar = !!S.mcp && !previa;
+  modal('<h2>'+(previa?"Prévia do e-mail":"E-mail de distribuição")+'</h2>'
+   +(previa
+      ? '<div class="note" style="margin-bottom:12px">Esta publicação <b>ainda não foi distribuída</b> — '
+        +'nada foi gravado. Dá para conferir o texto e mandar um teste para você mesma. '
+        +'Para enviar de verdade, feche e use <b>Distribuir e enviar</b>.</div>'
+      : '')
+   /* Tudo editável: ela pediu em 16/11/2026 ("QUERO EDITAR O EMAIL NESSA TELA").
+      O que vale no envio é o que estiver nos campos na hora do clique, não o
+      texto gerado — por isso os manipuladores leem do DOM, nunca das constantes. */
+   +'<div class="f"><label for="eDest">Para</label>'
+   +'<input id="eDest" type="email" value="'+esc(destinatario)+'" placeholder="nome@lucchesidolabela.com.br">'
+   +(destinatario ? '' : '<span class="hint">'+(previa && !adv
+        ? 'Nenhum advogado escolhido — escolha em <b>Quem faz…</b> ou escreva o endereço aqui.'
+        : 'Esse advogado está sem e-mail cadastrado. Escreva aqui, ou cadastre na aba <b>Equipe</b>.')+'</span>')
+   +'</div>'
+   +'<div class="f"><label for="eCopia">Cópia</label><input id="eCopia" type="email" value="'+esc(copia)+'">'
+   +'<span class="hint">O Louis entra em cópia em todo e-mail de prazo — dá para tirar ou trocar aqui.</span></div>'
+   +'<div class="f"><label for="eAss">Assunto</label><input id="eAss" value="'+esc(assunto)+'"></div>'
+   +'<div class="f"><label for="eCorpo">Mensagem</label><textarea id="eCorpo" rows="14">'+esc(corpo)+'</textarea>'
+   +'<span class="hint">Pode mudar tudo antes de mandar. O que estiver aqui é o que sai.</span></div>'
+   /* Anexos — pedido dela em 18/11/2026. Só existem no envio pelo Gmail (e no teste);
+      quem copia e cola anexa no próprio e-mail. */
+   +(S.mcp
+      ? '<div class="f"><label for="eAnexos">Anexos</label><input id="eAnexos" type="file" multiple>'
+        +'<span class="hint" id="eAnexosInfo">Opcional. Até 10 MB no total. Vai junto no envio pelo Gmail e no teste.</span></div>'
+      : '')
+   +(podeEnviar
+      ? '<div class="note" style="border-left-color:var(--ok)">Confira o texto e clique em '
+        +'<b>Enviar pelo Gmail</b>. Sai da sua conta, com a sua assinatura, e o painel registra '
+        +'o envio sozinho — a contagem de espera começa na hora.</div>'
+      : '<div class="note">Copie, cole no seu e-mail e mande. <b>Depois volte aqui e clique em "Já enviei"</b> — '
+        +'é esse clique que liga o relógio: a partir dele o painel conta os dias de espera e avisa, na aba '
+        +'<b>Cobrança</b>, quem não devolveu o OK.</div>')
+   +'<div class="acts">'
+   +(podeEnviar?'<button class="btn btn-primary" id="eEnviar">Enviar pelo Gmail</button>':'')
+   +(S.mcp && S.euEmail
+      ? '<button class="btn" id="eTeste" title="Manda este mesmo e-mail para o seu endereço. Não registra envio nem avisa o advogado.">Enviar para mim (teste)</button>'
+      : '')
+   +'<button class="btn'+(podeEnviar?'':' btn-primary')+'" id="eCopiar">Copiar mensagem</button>'
+   +'<button class="btn" id="eCopiarTudo">Copiar com cabeçalho</button>'
+   +(naoEnviados.length
+      ? '<button class="btn" id="eEnviei">Já enviei ('+naoEnviados.length+')</button>'
+      : '<span class="chip c-ok" style="align-self:center">envio já registrado</span>')
+   +'<button class="btn" id="eFechar" style="margin-left:auto">Fechar</button></div>');
+  /** Anexos escolhidos AGORA, em base64 — o formato que o send_message do Gmail aceita.
+      Lidos só no clique de enviar/testar, para valer o que está no campo naquela hora. */
+  const ANEXO_MAX = 10*1024*1024;
+  const lerAnexos = async () => {
+    const inp = $("#eAnexos");
+    const fs = inp && inp.files ? [...inp.files] : [];
+    const tot = fs.reduce((s,f)=>s+f.size, 0);
+    if(tot > ANEXO_MAX) throw Object.assign(new Error("Os anexos passam de 10 MB. Tire algum ou mande o link do Drive na mensagem."), {code:"anexo_grande"});
+    return Promise.all(fs.map(f => new Promise((ok, ruim) => {
+      const r = new FileReader();
+      r.onload  = () => ok({filename:f.name, mimeType:f.type || "application/octet-stream",
+                            content:String(r.result).split(",")[1] || ""});
+      r.onerror = () => ruim(new Error("Não consegui ler o arquivo "+f.name+"."));
+      r.readAsDataURL(f);
+    })));
+  };
+  const inpAnexos = $("#eAnexos");
+  if(inpAnexos) inpAnexos.onchange = () => {
+    const fs = [...inpAnexos.files];
+    const mb = fs.reduce((s,f)=>s+f.size, 0) / 1048576;
+    const info = $("#eAnexosInfo");
+    if(info) info.textContent = fs.length
+      ? fs.length+(fs.length>1?" arquivos":" arquivo")+" · "+mb.toFixed(1)+" MB: "+fs.map(f=>f.name).join(", ")
+        +(mb>10 ? " — passa de 10 MB, não vai sair" : "")
+      : "Opcional. Até 10 MB no total. Vai junto no envio pelo Gmail e no teste.";
+  };
+  /** O que está nos campos AGORA — é isto que copia, testa e envia. */
+  const campos = () => ({
+    destinatario: ($("#eDest").value || "").trim(),
+    copia:        ($("#eCopia").value || "").trim(),
+    assunto:      ($("#eAss").value || "").trim(),
+    corpo:         $("#eCorpo").value || ""
+  });
+  const copiar = async txt => {
+    try{ await navigator.clipboard.writeText(txt);
+      toast(naoEnviados.length ? 'Copiado. Depois de mandar, clique em "Já enviei".' : "Copiado."); }
+    catch(_){ $("#eCorpo").select(); toast("Selecionei o texto — use Ctrl+C."); }
+    const b=$("#eEnviei");
+    if(b){ b.classList.add("btn-primary"); $("#eCopiar").classList.remove("btn-primary"); }
+  };
+  const cabecalho = c => "Para: "+(c.destinatario||"(sem destinatário)")
+    +(c.copia?"\nCópia: "+c.copia:"")+"\nAssunto: "+c.assunto+"\n\n";
+  $("#eCopiar").onclick=()=>copiar(campos().corpo);
+  $("#eCopiarTudo").onclick=()=>{ const c=campos(); copiar(cabecalho(c)+c.corpo); };
+  /* O envio de verdade. Depois que sai, o painel carimba `enviado_em` sozinho —
+     é o fim do "Já enviei" manual. Se o Gmail não responder, NÃO carimbo e aviso
+     para ela conferir a caixa de saída: carimbar um envio que não houve é pior
+     do que não carimbar. */
+  /* Teste: o MESMO e-mail, para o endereço dela. Sem cópia para o Louis, sem
+     carimbar envio e sem fechar o modal — é ensaio, não distribuição. */
+  const bTeste = $("#eTeste");
+  if(bTeste) bTeste.onclick = async ev => {
+    const b = ev.target, antes = b.innerHTML;
+    b.disabled = true; b.innerHTML = '<span class="spin"></span> Enviando…';
+    try{
+      const c = campos();   // o que ela editou, não o texto gerado
+      c.anexos = await lerAnexos();
+      await enviarPeloGmail({destinatario:S.euEmail, copia:"", assunto:"[TESTE] "+c.assunto, corpo:c.corpo, anexos:c.anexos});
+      toast("Teste enviado para "+S.euEmail+". Nada foi registrado como enviado.", 5000);
+    }catch(e){
+      toast(MSG_GMAIL[e.code] || e.message || "Não consegui enviar o teste.", 5200);
+    }finally{ b.disabled = false; b.innerHTML = antes; }
+  };
+
+  const bEnviar = $("#eEnviar");
+  if(bEnviar) bEnviar.onclick = async ev => {
+    const b = ev.target, antes = b.innerHTML;
+    b.disabled = true; b.innerHTML = '<span class="spin"></span> Enviando…';
+    try{
+      const c = campos();   // o que está na tela manda, não o texto gerado
+      c.anexos = await lerAnexos();
+      const r = await enviarPeloGmail(c);
+      /* Guardo a CONVERSA do Gmail no prazo. É a chave da baixa automática do
+         "ok": lendo os e-mails dela vi que as respostas são curtas — "ok",
+         "Feito", "ED no peticiona" — e quase nunca repetem o número do processo.
+         Procurar o número no texto da resposta falharia quase sempre; casar pela
+         thread é exato. Sem guardar isto na hora do envio, não há como casar
+         depois. */
+      const info = (r && r.payload) ? r.payload : r;
+      await carimbar(naoEnviados, {
+        enviado_em: new Date().toISOString(),
+        gmail_thread_id: (info && info.threadId) || "",
+        gmail_message_id: (info && info.id) || ""
+      });
+      fechar();
+      toast("E-mail enviado para "+c.destinatario+(c.copia?" (com cópia)":"")+".", 4200);
+    }catch(e){
+      b.disabled = false; b.innerHTML = antes;
+      toast(MSG_GMAIL[e.code] || e.message || "Não consegui enviar o e-mail.", 5200);
+    }
+  };
+  if(naoEnviados.length) $("#eEnviei").onclick = async ev => {
+    ev.target.disabled=true;
+    const n = await marcarEnviado(naoEnviados);
+    fechar();
+    toast(n+(n>1?" prazos marcados":" prazo marcado")+" como enviado. A contagem de espera começa agora.", 3800);
+  };
+  $("#eFechar").onclick=fechar;
+}
+
+/* ---- e-mail de COBRANÇA ----
+   Mesmo esqueleto do de distribuição, mas lembrando há quanto tempo o prazo
+   está parado e quanto falta para o fatal — é o que ela hoje escreve na mão
+   toda vez que precisa correr atrás de alguém. */
+function gerarCobranca(lista, adv){
+  const n = lista.length;
+  const primeiro = (adv?.nome||"").split(" ")[0];
+  const assunto = n===1
+    ? "Confirmação pendente — "+lista[0].processo+" — fatal "+brDate(lista[0].prazo_fatal)
+    : "Confirmação pendente — "+n+" prazos";
+  const corpo =
+    abertura(adv?.nome)+"\n\n"
+    +(n===1 ? "Te mandei este prazo e ainda não recebi sua confirmação:"
+            : "Te mandei estes "+n+" prazos e ainda não recebi sua confirmação:")+"\n\n"
+    + lista.map((p,i)=>{
+        const esp = diasUteisDesde(p.enviado_em);
+        const urg = urgenciaTexto(p.prazo_fatal);
+        return (n>1?(i+1)+") ":"")
+          +"Processo: "+p.processo+"  ("+p.tribunal+")\n"
+          +"Providência: "+p.providencia+"\n"
+          +(p.prazo_fatal
+             ? "Prazo fatal: "+brDate(p.prazo_fatal)+(urg?"  — "+urg:"")+"\n"
+             : "Sem prazo definido\n")
+          +(p.enviado_em
+             ? "Enviei em "+brDate(String(p.enviado_em).slice(0,10))
+               +(esp?"  ("+esp+" dias úteis sem resposta)":"")+"\n" : "");
+      }).join("\n")
+    +"\nSó preciso de um OK para dar baixa no controle. Se já estiver feito, me avisa que eu "
+    +"baixo como entregue.\n\nObrigada,\nLuciana";
+  const destinatario = adv?.email||"";
+  return {assunto, corpo, destinatario, copia:emailCopia(destinatario)};
+}
+
+/* ---- carimbos de controle ----
+   São eles que fazem a aba Cobrança funcionar. `salvar` troca o documento
+   INTEIRO, então sempre parto do que está no estado atual e só acrescento. */
+async function carimbar(lista, campos){
+  let n=0;
+  for(const p of lista){
+    const atual = S.prazos.find(x=>x.id===p.id) || p;
+    const extra = typeof campos==="function" ? campos(atual) : campos;
+    if(await salvar("prazos", p.id, {...atual, id:undefined, ...extra})) n++;
+  }
+  return n;
+}
+const marcarEnviado     = lista => carimbar(lista, {enviado_em:new Date().toISOString()});
+const registrarCobranca = lista => carimbar(lista, a=>({cobrado_em:new Date().toISOString(),
+                                                        cobrancas:(a.cobrancas||0)+1}));
+const marcarOkLote      = lista => carimbar(lista, {status:"ok", data_ok:new Date().toISOString()});
+
+function modalCobranca(lista, adv){
+  if(!lista.length){ toast("Esse advogado não tem prazo aguardando resposta."); return; }
+  const {assunto, corpo, destinatario, copia} = gerarCobranca(lista, adv);
+  modal('<h2>Cobrança de confirmação</h2>'
+   // editável, igual ao e-mail de distribuição
+   +'<div class="f"><label for="cDest">Para</label>'
+   +'<input id="cDest" type="email" value="'+esc(destinatario)+'" placeholder="nome@lucchesidolabela.com.br">'
+   +(destinatario?'':'<span class="hint">Sem e-mail cadastrado — escreva aqui ou cadastre na aba <b>Equipe</b>.</span>')
+   +'</div>'
+   +'<div class="f"><label for="cCopia">Cópia</label><input id="cCopia" type="email" value="'+esc(copia)+'"></div>'
+   +'<div class="f"><label for="cAss">Assunto</label><input id="cAss" value="'+esc(assunto)+'"></div>'
+   +'<div class="f"><label for="cCorpo">Mensagem</label><textarea id="cCorpo" rows="14">'+esc(corpo)+'</textarea>'
+   +'<span class="hint">Pode editar antes de copiar.</span></div>'
+   +'<div class="note">Depois de mandar, clique em <b>Registrar cobrança</b> — fica o histórico de quantas '
+   +'vezes você já correu atrás desse mesmo prazo. Se a pessoa responder, <b>Respondeu — marcar OK</b> '
+   +'baixa os '+lista.length+' de uma vez.</div>'
+   +'<div class="acts"><button class="btn btn-primary" id="cCopiar">Copiar mensagem</button>'
+   +'<button class="btn" id="cReg">Registrar cobrança</button>'
+   +'<button class="btn" id="cOk">Respondeu — marcar OK ('+lista.length+')</button>'
+   +'<button class="btn" id="cFechar" style="margin-left:auto">Fechar</button></div>');
+  $("#cCopiar").onclick = async ()=>{
+    const d=($("#cDest").value||"").trim(), cc=($("#cCopia").value||"").trim();
+    const a=($("#cAss").value||"").trim(), co=$("#cCorpo").value||"";
+    try{ await navigator.clipboard.writeText("Para: "+(d||"(sem destinatário)")
+          +(cc?"\nCópia: "+cc:"")+"\nAssunto: "+a+"\n\n"+co);
+      toast("Copiado. Depois de mandar, registre a cobrança."); }
+    catch(_){ const t=$("#cCorpo"); t.select();
+      t.setAttribute("readonly",""); toast("Selecionei o texto — use Ctrl+C."); }
+    $("#cReg").classList.add("btn-primary"); $("#cCopiar").classList.remove("btn-primary");
+  };
+  $("#cReg").onclick = async ev=>{ ev.target.disabled=true;
+    const n = await registrarCobranca(lista); fechar();
+    toast("Cobrança registrada em "+n+(n>1?" prazos.":" prazo.")); };
+  $("#cOk").onclick = async ev=>{ ev.target.disabled=true;
+    const n = await marcarOkLote(lista); fechar();
+    toast(n+(n>1?" prazos confirmados":" prazo confirmado")+" — saiu da fila de cobrança.", 3400); };
+  $("#cFechar").onclick = fechar;
+}
+
+function modalAdv(a){
+  const e=a||{};
+  modal('<h2>'+(a?"Editar advogado":"Cadastrar advogado")+'</h2>'
+   +'<div class="f"><label for="aNome">Nome</label><input id="aNome" value="'+esc(e.nome||"")+'"></div>'
+   +'<div class="f"><label for="aEmail">E-mail</label><input id="aEmail" type="email" value="'+esc(e.email||"")+'">'
+     +'<span class="hint">Usado para identificar o "ok" dele quando o Gmail estiver conectado.</span></div>'
+   +'<div class="f"><label for="aReg">Região</label><select id="aReg">'
+     +['NE','SE','TODAS'].map(r=>'<option value="'+r+'"'+(e.regiao===r?' selected':'')+'>'
+       +(r==="NE"?"Nordeste":r==="SE"?"Sudeste":"Todas")+'</option>').join("")+'</select></div>'
+   +'<div class="f"><label for="aIni">Começa a trabalhar às</label><input id="aIni" type="time" value="'+esc(e.hora_inicio||"09:00")+'">'
+     +'<span class="hint">Evita marcar audiência antes do horário dele.</span></div>'
+   +'<div class="acts"><button class="btn btn-primary" id="aSalvar">Salvar</button>'
+   +'<button class="btn" id="aCancel">Cancelar</button>'
+   +(a?'<button class="btn" id="aDel" style="margin-left:auto;color:var(--crit)">Excluir</button>':'')+'</div>');
+  $("#aSalvar").onclick=async()=>{
+    const nome=$("#aNome").value.trim(); if(!nome){ toast("O nome é obrigatório."); return; }
+    await salvar("advogados", a?a.id:uid(), {nome, email:$("#aEmail").value.trim(),
+      regiao:$("#aReg").value, hora_inicio:$("#aIni").value, ativo:true});
+    fechar(); toast("Advogado salvo.");
+  };
+  $("#aCancel").onclick=fechar;
+  if(a) $("#aDel").onclick=async()=>{ await remover("advogados",a.id); fechar(); toast("Advogado removido."); };
+}
+
+function modalTese(t, pre){
+  const e=t||pre||{};
+  modal('<h2>'+(t?"Editar tese":"Nova tese")+'</h2>'
+   +'<div class="f"><label for="tRot">Rótulo</label><input id="tRot" value="'+esc(e.rotulo||"")+'" placeholder="Impugnação a laudo pericial — BMG"></div>'
+   +'<div class="f"><label for="tProv">Providência</label><input id="tProv" value="'+esc(e.providencia||"")+'" placeholder="Conferir laudo e impugnar o valor apurado"></div>'
+   +'<div class="f"><label for="tDias">Prazo (dias úteis)</label><input id="tDias" type="number" min="0" max="180" value="'+(e.prazo_dias||0)+'"></div>'
+   +'<div class="f"><label for="tGat">Gatilhos</label><textarea id="tGat" rows="3" placeholder="laudo pericial&#10;impugnar o laudo">'
+     +esc((e.gatilhos||[]).join("\n"))+'</textarea>'
+     +'<span class="hint">Um por linha. Se um deles aparecer no texto da publicação, o painel aplica esta tese.</span></div>'
+   +'<div class="f"><label for="tTese">Tese / observações</label><textarea id="tTese" rows="3">'+esc(e.tese||"")+'</textarea></div>'
+   +'<div class="acts"><button class="btn btn-primary" id="tSalvar">Salvar</button>'
+   +'<button class="btn" id="tCancel">Cancelar</button></div>');
+  $("#tSalvar").onclick=async()=>{
+    const rotulo=$("#tRot").value.trim(); if(!rotulo){ toast("Dê um rótulo à tese."); return; }
+    const gat=$("#tGat").value.split("\n").map(s=>s.trim()).filter(Boolean);
+    await salvar("teses", t?t.id:uid(), {rotulo, providencia:$("#tProv").value.trim(),
+      prazo_dias:Number($("#tDias").value)||0, gatilhos:gat, tese:$("#tTese").value.trim(),
+      vezes_usada:t?(t.vezes_usada||0):0, criado_em:t?t.criado_em:new Date().toISOString()});
+    fechar(); toast("Tese salva na memória.");
+  };
+  $("#tCancel").onclick=fechar;
+}
+
+/* ---- lançar o prazo fatal na Google Agenda ----
+   callTool é o braço de AÇÃO: roda uma vez, no clique. Sem convidados:
+   cria um lembrete só seu, não dispara convite para ninguém. */
+async function lancarNaAgenda(p, btn){
+  if(!S.mcp){ toast("A agenda não está disponível nesta visualização."); return; }
+  if(!p.prazo_fatal){ toast("Esse prazo não tem data fatal para lançar."); return; }
+  btn.disabled=true; const antes=btn.innerHTML; btn.innerHTML='<span class="spin"></span>';
+  try{
+    const desc = "Providência: "+p.providencia
+      +"\nProcesso: "+p.processo+"\nTribunal: "+p.tribunal
+      +(p.orgao?"\nÓrgão: "+p.orgao:"")
+      +"\nResponsável: "+(p.advogado_nome||"—")
+      +(p.prazo_dias?"\nContagem: "+p.prazo_dias+" dias úteis":"")
+      +(p.inicio_prazo?"\nInício: "+brDate(p.inicio_prazo):"")
+      +(p.link?"\n\n"+p.link:"")
+      +"\n\nLançado pelo painel Controladoria de Prazos.";
+    await S.mcp.callTool(CAL, "create_event", {
+      summary:"⏰ Prazo fatal | "+p.providencia+" | "+p.processo,
+      startTime:p.prazo_fatal+"T09:00:00",
+      endTime:p.prazo_fatal+"T09:30:00",
+      description:desc
+    });
+    await salvar("prazos", p.id, {...p, id:undefined, na_agenda:true});
+    toast("Lançado na sua agenda em "+brDate(p.prazo_fatal)+".");
+    try{ await S.mcp.invalidate(CAL,"list_events"); }catch(_){}
+  }catch(e){
+    const m = MSG_CAL[e.code];
+    if(e.code==="approval_required"||e.code==="consent_required")
+      toast("Autorize o painel a usar sua agenda e tente de novo.");
+    else if(e.code==="server_unavailable"||e.code==="upstream_error")
+      toast("A agenda não respondeu. Confira se o evento foi criado antes de repetir.", 4200);
+    else toast(m || "Não consegui lançar na agenda.");
+  }finally{ btn.disabled=false; btn.innerHTML=antes; }
+}
+
+/* ---- IA: classifica o que as regras não pegaram ---- */
+async function sugerirIA(){
+  if(!S.sample){ toast("A IA não está disponível nesta visualização."); return; }
+  const alvo = pubsFiltradas().filter(p=>!S.sugestoes[p.id] && (p.cls.origem==="nenhuma" || p.cls.conf==="media")).slice(0,25);
+  if(!alvo.length){ toast("Tudo já está classificado pelas regras ou pela memória."); return; }
+  const btn=$("#btnIA"); btn.disabled=true; btn.innerHTML='<span class="spin"></span> Analisando…';
+  try{
+    const memoria = S.teses.map(t=>"- "+t.rotulo+" → "+t.providencia+" ("+(t.prazo_dias||0)+" dias)").join("\n") || "(memória vazia)";
+    const itens = alvo.map((p,i)=>"["+i+"] "+p.tribunal+" | "+p.tipo+" | "+p.classe+"\n"+p.texto.slice(0,900)).join("\n\n");
+    const r = await S.sample.json(
+      "Você é um advogado sênior brasileiro na controladoria de um escritório. Para cada publicação judicial abaixo, "
+      +"diga a providência que o escritório deve tomar e o prazo legal em dias úteis.\n\n"
+      +"Teses que o escritório já usa (prefira reaproveitar uma destas quando couber):\n"+memoria+"\n\n"
+      +"Publicações:\n"+itens+"\n\n"
+      +'Responda APENAS um array JSON, um objeto por publicação, na mesma ordem, no formato: '
+      +'[{"i":0,"rotulo":"Laudo pericial","providencia":"Conferir laudo e avaliar impugnação","prazo_dias":15,"confianca":"alta"}]. '
+      +'Use prazo_dias 0 quando não houver prazo a cumprir (suspensão, arquivamento, mero andamento). '
+      +'confianca deve ser "alta", "media" ou "baixa".',
+      {modelTier:"default"}
+    );
+    let n=0;
+    (Array.isArray(r)?r:[]).forEach(o=>{
+      const p=alvo[Number(o.i)]; if(!p) return;
+      S.sugestoes[p.id]={rotulo:String(o.rotulo||"").slice(0,80), providencia:String(o.providencia||"").slice(0,200),
+        prazo_dias:Number(o.prazo_dias)||0, confianca:String(o.confianca||"media"), tese_id:null};
+      n++;
+    });
+    renderTriagem();
+    toast(n+" publicações classificadas pela IA. Confira antes de distribuir.");
+  }catch(e){
+    const m = {not_granted:"Você precisa autorizar o painel a usar a IA.",
+               rate_limited:"Muitas consultas seguidas. Espere um pouco.",
+               invalid_json:"A IA respondeu fora do formato. Tente de novo."}[e.code];
+    toast(m || "A IA não respondeu agora. Tente de novo.");
+  }finally{ btn.disabled=false; btn.textContent="Sugerir com IA"; }
+}
+
+/* ============================================================
+   COMARCAS — a vara aceita audiência virtual?
+   Alimentada pela rotina que lê as respostas aos e-mails
+   "Solicitação de participação virtual". Ver CLAUDE.md.
+   ============================================================ */
+const SIT_COMARCA = {
+  aceita:            {rot:"aceita virtual",        cor:"c-ok"},
+  nao_aceita:        {rot:"NÃO aceita",            cor:"c-crit"},
+  depende:           {rot:"depende / peticionar",  cor:"c-warn"},
+  endereco_invalido: {rot:"e-mail voltou",         cor:"c-mute"}
+};
+/* `endereco_invalido` continua aqui só para render decente de dado antigo.
+   ⚠️ NÃO há filtro dele na barra, e isso é escolha dela (17/11/2026):
+   "acho q pode tirar esses de email voltou". E-mail que volta é aviso do DIA —
+   vai no e-mail da rotina, para ela reenviar na hora —, não ficha de consulta.
+   Não reintroduza como linha da lista. */
+const ORDEM_SIT = ["nao_aceita","depende","aceita","endereco_invalido"];
+
+/* Busca sem acento dos DOIS lados: a vara escreve "Conciliação" e ela
+   digita "conciliacao". Mesma lição da busca da aba Prazos. */
+function semAcento(t){
+  return String(t==null?"":t).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+}
+
+function renderComarcas(){
+  const box = $("#comarcasBox");
+  if(!box) return;
+  const todas = (S.comarcas||[]).slice();
+  const badge = $("#nCom");
+  if(badge) badge.textContent = String(todas.length);
+
+  const termo = semAcento(($("#cBusca")||{}).value||"").trim();
+  const sit   = (($("#cSit")||{}).value)||"";
+
+  const lista = todas.filter(c=>{
+    if(sit && c.situacao!==sit) return false;
+    if(!termo) return true;
+    const alvo = semAcento([c.comarca,c.unidade,c.email,c.tribunal,c.uf,c.obs,c.frase,c.processo].join(" "));
+    return termo.split(/\s+/).every(p=>alvo.includes(p));
+  });
+
+  const conta = s => todas.filter(c=>c.situacao===s).length;
+  const resumo = ORDEM_SIT
+    .filter(s=>conta(s))
+    .map(s=>'<span class="chip '+SIT_COMARCA[s].cor+'">'+esc(SIT_COMARCA[s].rot)+" · "+conta(s)+"</span>")
+    .join(" ");
+
+  if(!todas.length){
+    box.innerHTML = '<div style="padding:22px;color:var(--fg-muted);font-size:13px">'
+      + "Ainda não há comarca registrada. A lista se enche sozinha conforme as varas "
+      + "respondem aos pedidos de participação virtual.</div>";
+    return;
+  }
+
+  /* Situação desconhecida (ou vazia) vai para o FIM. Sem isso o indexOf devolve
+     -1 e a comarca sem resposta sobe na frente das que não aceitam — que é
+     justamente a linha que ela precisa ver primeiro. */
+  const posSit = s => { const i = ORDEM_SIT.indexOf(s); return i<0 ? ORDEM_SIT.length : i; };
+  const linhas = lista.sort((a,b)=>
+      posSit(a.situacao)-posSit(b.situacao)
+      || String(a.uf||"").localeCompare(String(b.uf||""),"pt-BR")
+      || String(a.comarca||a.unidade||"").localeCompare(String(b.comarca||b.unidade||""),
+                                                        "pt-BR",{sensitivity:"base"})
+    ).map(c=>{
+      const s = SIT_COMARCA[c.situacao] || {rot:c.situacao||"sem posição", cor:"c-mute"};
+      const quando = c.data_resposta ? " · " + esc(c.data_resposta.split("-").reverse().join("/")) : "";
+      return "<tr>"
+        + '<td><span class="chip '+s.cor+'">'+esc(s.rot)+"</span></td>"
+        /* A COMARCA em primeiro lugar, grande. O nome da vara vem embaixo.
+           Antes mostrava só a sigla do e-mail ("CEJUSC (cejusc.fma)") e ela
+           respondeu: "eu nem sei que comarca seria essa". O nome vem do
+           `nomeOrgao` do DJEN, não de dedução. */
+        + "<td><b>"+esc(c.comarca||c.unidade||c.email||"")+"</b>"
+            + (c.comarca && c.unidade
+                ? "<div style='font-size:11.5px'>"+esc(c.unidade)+"</div>" : "")
+            + "<div style='font-size:11px;color:var(--fg-muted)'>"
+            + esc([c.tribunal,c.uf].filter(Boolean).join(" · "))+"</div></td>"
+        + "<td style='font-size:12px'>"+esc(c.email||"")+"</td>"
+        + "<td style='font-size:12px'>"
+            + (c.frase ? "“"+esc(c.frase)+"”" : "<i style='color:var(--fg-muted)'>sem resposta registrada</i>")
+            + "<div style='font-size:11px;color:var(--fg-muted);margin-top:3px'>"
+            + esc(fmtProc(c.processo)) + quando + "</div></td>"
+        + "<td style='font-size:12px;color:var(--fg-muted)'>"+esc(c.obs||"")+"</td>"
+        + "</tr>";
+    }).join("");
+
+  box.innerHTML =
+      '<div style="padding:11px 15px;border-bottom:1px solid var(--line);display:flex;gap:7px;flex-wrap:wrap;align-items:center">'
+    + resumo
+    + '<span style="font-size:11.5px;color:var(--fg-muted);margin-left:auto">'
+    + "A frase é a da própria vara. Onde não há frase, ninguém respondeu ainda.</span></div>"
+    + (linhas
+        ? "<table><thead><tr><th>Situação</th><th>Comarca / vara</th><th>E-mail</th>"
+          + "<th>O que a vara disse</th><th>Observação</th></tr></thead><tbody>"+linhas+"</tbody></table>"
+        : '<div style="padding:22px;color:var(--fg-muted);font-size:13px">Nada encontrado com esse filtro.</div>');
+}
+
+/* ============================================================
+   EVENTOS
+   ============================================================ */
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+  S.tab=b.dataset.tab;
+  document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected", String(x===b)));
+  ["triagem","prazos","cumpridos","cobranca","equipe","memoria","agenda","comarcas"].forEach(t=>$("#s-"+t).hidden = t!==S.tab);
+});
+
+$("#cBusca").oninput = renderComarcas;
+$("#cmBusca").oninput = renderCumpridos;
+$("#cSit").onchange  = renderComarcas;
+
+$("#btnBuscar").onclick=carregarTriagem;
+$("#btnIA").onclick=sugerirIA;
+$("#btnAtrasadas").onclick=e=>conferirAtrasadas(e.currentTarget);
+/* O botão "Abrir DD/MM a DD/MM" nasce dentro da nota, então é ouvido na caixa. */
+$("#atrasadasBox").addEventListener("click",e=>{
+  const b = e.target.closest("[data-abrir-ini]");
+  if(!b) return;
+  $("#fDataIni").value = b.dataset.abrirIni;
+  $("#fDataFim").value = b.dataset.abrirFim;
+  atualizarBotaoBusca();
+  $("#atrasadasBox").innerHTML = "";
+  carregarTriagem();
+});
+$("#fRegiao").onchange=()=>{renderTriagem();atualizarKPIs()};
+$("#fBusca").oninput=()=>{renderTriagem();atualizarKPIs()};
+$("#fDataIni").onchange=atualizarBotaoBusca;
+$("#fDataFim").onchange=atualizarBotaoBusca;
+$("#pStatus").onchange=renderPrazos;
+$("#pAdv").onchange=renderPrazos;
+$("#pBusca").oninput=renderPrazos;
+$("#btnConferir").onclick=e=>conferirRespostas(e.target);
+$("#btnNovoAdv").onclick=()=>modalAdv(null);
+$("#btnNovaTese").onclick=()=>modalTese(null);
+const mudarMes = n => { S.mes.setMonth(S.mes.getMonth()+n);
+  if(S.mcp) assinarAgenda(); else renderAgenda(); };
+$("#mPrev").onclick=()=>mudarMes(-1);
+$("#mNext").onclick=()=>mudarMes(1);
+$("#ov").onclick=e=>{ if(e.target===$("#ov")) fechar(); };
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") fechar(); });
+
+$("#btnTheme").onclick=()=>{
+  const cur=document.documentElement.getAttribute("data-theme");
+  const dark=cur ? cur==="dark" : matchMedia("(prefers-color-scheme:dark)").matches;
+  document.documentElement.setAttribute("data-theme", dark?"light":"dark");
+  try{ localStorage.setItem("tema", dark?"light":"dark"); }catch(_){}
+};
+
+$("#triagemBox").addEventListener("click",async e=>{
+  const pub=e.target.closest(".pub"); if(!pub) return;
+  const id=pub.dataset.id;
+  if(e.target.classList.contains("pub-txt")){ e.target.classList.toggle("open"); return; }
+  if(e.target.classList.contains("a-semprov")){
+    /* Um clique só: é o caso mais comum e mais chato de tratar — intimação
+       dirigida à parte autora ou à secretaria, em que o escritório não faz nada.
+       Grava para a conferência do dia contar como tratada; sem prazo, porque
+       não há o que cumprir. */
+    const p = S.pubs.find(x=>x.id===id); if(!p) return;
+    const b = e.target, antes = b.textContent;
+    b.disabled = true; b.innerHTML = '<span class="spin"></span>';
+    const ok = await gravarFechado(p, 0, "sem_prov", "Sem providência");
+    b.disabled = false; b.textContent = antes;
+    if(ok) toast("Registrada como sem providência.", 2800);
+    return;
+  }
+  if(e.target.classList.contains("a-eu")){
+    const p = S.pubs.find(x=>x.id===id); if(!p) return;
+    modalFicaComigo(p, pub);
+    return;
+  }
+  if(e.target.classList.contains("a-jarep")){
+    const p = S.pubs.find(x=>x.id===id); if(!p) return;
+    modalJaRepassei(p, pub);
+    return;
+  }
+  if(e.target.classList.contains("a-prev")){
+    // Prévia: monta o e-mail com o que está nos campos AGORA, sem gravar nada.
+    const p = S.pubs.find(x=>x.id===id); if(!p) return;
+    const prov = pub.querySelector(".i-prov").value.trim();
+    const dias = Number(pub.querySelector(".i-dias").value)||0;
+    const adv  = S.advs.find(a=>a.id===pub.querySelector(".i-adv").value) || null;
+    const prz  = dias ? calcPrazo(p.data, dias) : null;
+    modalEmail([{processo:p.processo, processo_raw:p.processoRaw, tribunal:p.tribunal,
+                 orgao:p.orgao, parte_contraria:p.parteContraria, providencia:prov,
+                 texto:p.texto, prazo_fatal:prz?prz.fatal:null, prazo_dias:dias,
+                 status:"pendente", enviado_em:null}], adv, {previa:true});
+    return;
+  }
+  if(e.target.classList.contains("a-dist")){
+    const b = e.target, antes = b.textContent;
+    b.disabled = true; b.innerHTML = '<span class="spin"></span>';
+    const p = await distribuir(id, pub);
+    b.disabled = false; b.textContent = antes;
+    // Distribuir e mandar viraram um gesto só: grava e já abre o e-mail dele.
+    if(p) modalEmail([p], S.advs.find(a=>a.id===p.advogado_id));
+    return;
+  }
+  if(e.target.classList.contains("a-desc")){
+    S.pubs=S.pubs.filter(p=>p.id!==id); renderTriagem(); atualizarKPIs(); toast("Publicação descartada da triagem."); return;
+  }
+  if(e.target.classList.contains("a-tese")){
+    const p=S.pubs.find(x=>x.id===id); if(!p) return;
+    const s=S.sugestoes[id];
+    modalTese(null,{rotulo:(s?s.rotulo:p.cls.rotulo), providencia:pub.querySelector(".i-prov").value,
+      prazo_dias:Number(pub.querySelector(".i-dias").value)||0, gatilhos:[]});
+    return;
+  }
+});
+
+$("#prazosBox").addEventListener("click",async e=>{
+  const tr=e.target.closest("tr"); if(!tr) return;
+  const p=S.prazos.find(x=>x.id===tr.dataset.id); if(!p) return;
+  if(e.target.classList.contains("p-pub"))
+    modalPublicacao(p);
+  else if(e.target.classList.contains("p-mail"))
+    modalEmail([p], S.advs.find(a=>a.id===p.advogado_id));
+  else if(e.target.classList.contains("p-cal"))
+    await lancarNaAgenda(p, e.target);
+  else if(e.target.classList.contains("p-ok"))
+    await salvar("prazos",p.id,{...p,id:undefined,status:"ok",data_ok:new Date().toISOString()});
+  else if(e.target.classList.contains("p-ent"))
+    await salvar("prazos",p.id,{...p,id:undefined,status:"entregue",data_entrega:new Date().toISOString()});
+  /* Desfaz a baixa automática. Volta para "confirmado" (o advogado respondeu,
+     só não cumpriu) e limpa a prova, para não sugerir baixa que ela recusou. */
+  else if(e.target.classList.contains("p-naoent"))
+    await salvar("prazos",p.id,{...p,id:undefined,status:"ok",
+      data_entrega:"", entregue_por:"", entregue_prova:"",
+      data_ok:p.data_ok||new Date().toISOString()});
+  else if(e.target.classList.contains("p-del")) await remover("prazos",p.id);
+});
+
+/* A aba Cumpridos é só consulta — o único botão da linha abre a publicação.
+   É aí que ela procura o que já foi fechado, e era de uma linha dessas que veio
+   o pedido de 19/11/2026. */
+$("#cumpridosBox").addEventListener("click", e=>{
+  if(!e.target.classList.contains("cm-pub")) return;
+  const tr = e.target.closest("tr"); if(!tr) return;
+  const p = S.prazos.find(x=>x.id===tr.dataset.id); if(!p) return;
+  modalPublicacao(p);
+});
+
+$("#equipeBox").addEventListener("click",e=>{
+  const c=e.target.closest(".adv"); if(!c) return;
+  const a=S.advs.find(x=>x.id===c.dataset.id); if(!a) return;
+  if(e.target.classList.contains("a-edit")) modalAdv(a);
+  if(e.target.classList.contains("a-mail")){
+    const abertos = S.prazos.filter(p=>p.advogado_id===a.id && !FECHADO.has(p.status))
+      .sort((x,y)=>(x.prazo_fatal||"9999").localeCompare(y.prazo_fatal||"9999"));
+    modalEmail(abertos, a);
+  }
+  if(e.target.classList.contains("a-ver")){
+    document.querySelector('.tab[data-tab="prazos"]').click();
+    /* Limpa a busca: vir da Equipe é a pergunta "o que falta com ela", e uma busca
+       esquecida no campo faria a tela abrir vazia sem ela entender por quê. */
+    $("#pBusca").value=""; $("#pAdv").value=a.id; $("#pStatus").value="abertos"; renderPrazos();
+  }
+});
+
+$("#cobrancaBox").addEventListener("click",e=>{
+  const row=e.target.closest(".aud"); if(!row) return;
+  /* Cancelar distribuição que ainda não saiu. Dois cliques: o primeiro arma
+     ("Confirmar cancelamento?"), o segundo apaga — sem janela do navegador. Prazo já
+     enviado NÃO se cancela por aqui: o advogado já recebeu o e-mail. */
+  if(e.target.classList.contains("k-cancel")){
+    const b=e.target, id=b.dataset.id, rotulo=b.textContent;
+    if(b.dataset.armado!=="1"){
+      b.dataset.armado="1"; b.textContent="Confirmar cancelamento?";
+      b.style.color="var(--crit)"; b.style.borderColor="var(--crit)";
+      setTimeout(()=>{ if(b.isConnected && !b.disabled){ b.dataset.armado=""; b.textContent=rotulo;
+        b.style.color=""; b.style.borderColor=""; } }, 4000);
+      return;
+    }
+    const p=S.prazos.find(x=>x.id===id);
+    if(!p || p.enviado_em || p.status!=="pendente"){
+      toast("Esse prazo já foi enviado ou mudou — não dá para cancelar por aqui.", 4200); return;
+    }
+    b.disabled=true; b.textContent="Cancelando…";
+    remover("prazos", id).then(()=>toast("Distribuição de "+p.processo+" cancelada. A publicação voltou para a Triagem.", 4800));
+    return;
+  }
+  const advId=row.dataset.adv, tipo=row.dataset.tipo;
+  const adv=S.advs.find(a=>a.id===advId)||null;
+  // Relê a fila do estado na hora do clique — o banco pode ter mudado desde o render.
+  const lista=S.prazos
+    .filter(p=>p.status==="pendente" && (p.advogado_id||"")===advId
+             && (tipo==="cobrar" ? !!p.enviado_em : !p.enviado_em))
+    .sort((a,b)=>(a.prazo_fatal||"9999").localeCompare(b.prazo_fatal||"9999"));
+  if(e.target.classList.contains("k-mail")){
+    if(tipo==="cobrar") modalCobranca(lista, adv); else modalEmail(lista, adv);
+  }
+  if(e.target.classList.contains("k-ver")){
+    document.querySelector('.tab[data-tab="prazos"]').click();
+    $("#pBusca").value="";          // mesma razão do atalho da aba Equipe
+    $("#pAdv").value=advId;
+    $("#pStatus").value = tipo==="cobrar" ? "pendente" : "a_enviar";
+    renderPrazos();
+  }
+});
+
+$("#memoriaBox").addEventListener("click",async e=>{
+  const tr=e.target.closest("tr"); if(!tr) return;
+  if(e.target.classList.contains("t-fixar")){          // linha do "o que aprendi"
+    const a = tudoAprendido().find(x=>x.rotulo===tr.dataset.rotulo);
+    if(a) modalTese(null,{rotulo:a.rotulo, providencia:a.texto, prazo_dias:0, gatilhos:[]});
+    return;
+  }
+  const t=S.teses.find(x=>x.id===tr.dataset.id); if(!t) return;
+  if(e.target.classList.contains("t-edit")) modalTese(t);
+  if(e.target.classList.contains("t-del")) await remover("teses",t.id);
+});
+
+$("#btnExport").onclick=async()=>{
+  const list=prazosFiltrados();
+  if(!list.length){ toast("Nada para copiar neste filtro."); return; }
+  /* Mesmo agrupamento da tela: por responsável, alfabético, com a contagem.
+     O resumo colado tem que responder "quantos estão com cada um" sem ela
+     precisar contar linha — foi o pedido de 16/11/2026. */
+  const SEM = "Sem responsável";
+  /* O rótulo antigo jogava "eu" e "sem_prov" em "entregue", o que era mentira:
+     são coisas que ela resolveu, não que alguém cumpriu. */
+  const rotulo = p => p.status==="pendente" ? (p.enviado_em ? "SEM RESPOSTA" : "A ENVIAR")
+                    : p.status==="ok"       ? "confirmado"
+                    : p.status==="eu"       ? "já tratado (eu)"
+                    : p.status==="sem_prov" ? "sem providência"
+                    : "entregue";
+  const g = new Map();
+  for(const p of list){
+    const n = String(p.advogado_nome||"").trim() || SEM;
+    if(!g.has(n)) g.set(n, []);
+    g.get(n).push(p);
+  }
+  const nomes = [...g.keys()].sort((a,b) => a===SEM ? 1 : b===SEM ? -1
+    : a.localeCompare(b, "pt-BR", {sensitivity:"base"}));
+  const txt = "PRAZOS — "+new Date().toLocaleDateString("pt-BR")+"\n"
+    + nomes.map(n=>{
+        const l = g.get(n);
+        return "\n"+n.toUpperCase()+" — "+l.length+(l.length>1?" prazos":" prazo")+"\n\n"
+          + l.map(p=>"• "+brDate(p.prazo_fatal)+" | "+p.processo+" ("+p.tribunal+")\n  "
+              +p.providencia+"\n  "+rotulo(p)).join("\n\n");
+      }).join("\n");
+  try{ await navigator.clipboard.writeText(txt); toast("Resumo copiado."); }
+  catch(_){ modal('<h2>Resumo dos prazos</h2><textarea rows="16" readonly>'+esc(txt)
+    +'</textarea><div class="acts" style="margin-top:12px"><button class="btn" onclick="document.getElementById(\'ov\').hidden=true">Fechar</button></div>'); }
+};
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+try{ const t=localStorage.getItem("tema"); if(t) document.documentElement.setAttribute("data-theme",t); }catch(_){}
+/* Abre já no período certo: só hoje num dia normal, e o acumulado desde o
+   primeiro dia não trabalhado quando vem de feriado ou fim de semana. */
+const perPadrao = periodoPadrao();
+$("#fDataIni").value = perPadrao.ini;
+$("#fDataFim").value = perPadrao.fim;
+atualizarBotaoBusca();
+renderTudo();
+
+(async()=>{
+  if(!window.claude?.use) return;
+  const [db,user,sample,mcp] = await Promise.all([
+    claude.use("db").catch(()=>null),
+    claude.use("user").catch(()=>null),
+    claude.use("sample").catch(()=>null),
+    claude.use("mcp").catch(()=>null)
+  ]);
+  S.db=db; S.user=user; S.sample=sample; S.mcp=mcp;
+  $("#btnIA").hidden = !sample;
+  $("#btnConferir").hidden = !mcp;   // sem Gmail não há conversa para conferir
+  /* O endereço dela mesma, só para liberar o "Enviar para mim (teste)". Pode vir
+     vazio se a organização não liberar o campo — aí o botão nem aparece. */
+  if(user){ try{ const eu = await user.me(); if(eu && eu.email) S.euEmail = eu.email; }catch(_){} }
+  if(db){
+    assinar();
+    // As publicações vêm do banco, então a carga inicial só pode rodar DEPOIS
+    // que o `db` resolveu. Antes disso não há o que carregar.
+    carregarTriagem();
+  } else {
+    $("#brandSub").textContent += " · banco indisponível nesta visualização";
+  }
+  if(mcp){ assinarAgenda(); } else { S.calEstado="indisponivel"; renderAgenda(); }
+})();
+</script>
+
+</body></html>
