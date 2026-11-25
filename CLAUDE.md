@@ -597,6 +597,36 @@ ganha um chip com a data de disponibilização.
 Testado com 4 cenários simulados (500 que se resolve na retentativa, 500 permanente, 429
 no meio, tudo certo) mais a paginação real de 487 publicações contra a API.
 
+### 🔴 SESSÃO NA NUVEM também não alcança o DJEN — medido em 25/11/2026
+
+Ela pediu *"busca agora"* e depois *"tenta agr"*, de uma sessão do Claude na
+nuvem. **Não dá, e agora está medido em vez de suposto.** São DUAS barreiras
+em série, e a primeira escondia a segunda:
+
+1. **A lista de domínios permitidos do ambiente** não tinha o
+   `comunicaapi.pje.jus.br`. Sintoma: `curl` devolve
+   `CONNECT tunnel failed, response 403` e a busca web devolve
+   `getaddrinfo ENOTFOUND`. ⚠️ Isso **parece** o bloqueio por país e não é —
+   a conexão morre no proxy do ambiente, antes de sair. Não confunda os dois.
+2. Liberado o domínio (menu do ambiente na barra de título → Edit → Network
+   access → Allowed domains), a conexão chega ao servidor e vem a resposta de
+   verdade, **HTTP 403 da CloudFront**:
+
+   > *The Amazon CloudFront distribution is configured to block access from
+   > your country.*
+
+   É o bloqueio por país do CNJ, confirmado. **Liberar o domínio não resolve** —
+   só troca a mensagem de erro por uma honesta.
+
+**Consequência prática: de uma sessão na nuvem, os únicos caminhos são o
+clipping do webjur (Gmail) e o computador dela.** Nesse dia o Remote Control
+também não servia: `list_computer_folders` devolveu vazio, ou seja, nenhuma
+pasta do computador dela estava sendo servida para a sessão.
+
+⚠️ **Não repita o diagnóstico.** Se uma sessão na nuvem precisar do DJEN, diga
+isso de cara e vá pelo clipping; e nunca grave o dia a partir dele sem marcar
+`fonte: "webjur"` e avisar que o dia está incompleto.
+
 ### 🔴 O painel não alcança o DJEN — e nunca vai (13/11/2026)
 
 **Causa confirmada, não suposta.** O artefato roda em
