@@ -139,9 +139,23 @@ Divisão de trabalho no escritório: a Luciana cuida do **Nordeste**; o advogado
     jeito das outras — pelo `destinatarioadvogados` de publicações reais, ou por
     `&siglaTribunal=TJMA&nomeAdvogado=LOUIS%20AUGUSTO%20DOLABELA%20IRRTHUM`. Não presuma
     que a quarta era a última.
-  → Janela atual: **a publicação sai entre 8h50 e ~9h50** — e em 17/11 e 18/11 saiu
-    antes das 8h52. O horário **varia de dia para dia**; não conclua, de uma
-    medição boa, que a rodada das 7h/8h passou a ser confiável. Continue anotando.
+  → Janela ANTIGA: 8h50 a ~9h50 — medida em 16 a 18/11.
+  - 🔴 **25/11/2026: a janela mudou, e quem viu foi ela.** O cabeçalho do dia
+    registra *"Rotina DJEN de 25/11/2026 (8h26)"* com as 117 publicações — ou
+    seja, **o dia já estava publicado às 8h26**. E ela disse, do uso diário:
+    *"se eu chego 08h e busco manualmente sempre aparece"*. A observação dela
+    vale mais que a janela antiga, que era de três dias de novembro.
+  → **Janela atual: o dia costuma estar pronto às 8h.** Continue anotando — o
+    horário varia, e o que vale é a medição mais recente, não esta linha.
+
+  ⚠️ **E rodar cedo NÃO custa nada** — eu argumentei o contrário em 25/11 e
+  estava errado. Quando a busca vem zero, o passo 3 manda **não gravar o dia** e
+  sair. Uma rodada cedo que não acha nada é inofensiva: não esconde triagem, não
+  estraga o dia, e a rodada seguinte tenta de novo. O erro das 4h **não foi**
+  rodar cedo — foi rodar cedo e ser a ÚNICA rodada. Com rodadas seguintes
+  cobrindo, adiantar a primeira é de graça.
+  📌 Por isso a rotina do computador passou a rodar **8h05 · 9h05 · 10h05**
+  (era 9h37 e 10h37), a pedido dela: *"eu chego sempre umas 08:00"*.
 
   Conclusão prática: **a rodada das 7h/8h quase nunca vai pegar o dia.** Quem pega é a
   `conferencia-publicacoes` das 10h31. Se isso incomodar (ela começa às 8h e fica sem
