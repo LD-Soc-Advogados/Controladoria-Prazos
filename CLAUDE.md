@@ -597,6 +597,37 @@ ganha um chip com a data de disponibilização.
 Testado com 4 cenários simulados (500 que se resolve na retentativa, 500 permanente, 429
 no meio, tudo certo) mais a paginação real de 487 publicações contra a API.
 
+### 🔴 "O painel não puxa o DJEN quando eu peço" — a resposta (25/11/2026)
+
+Queixa dela, nestas palavras: *"sempre que estou nesse computador o painel dá
+essa travada… a travada é que não puxa o djen quando eu peço"*.
+
+**Não é lentidão e não é bug do painel.** Medido antes de opinar: as funções de
+data do painel custam **6 ms** sobre os 197 prazos reais, e um dia pesa ~350 KB.
+Não há o que otimizar aí. São DUAS causas somadas:
+
+1. **O painel NUNCA busca o DJEN** — nem quando ela clica. "Carregar período" só
+   lê o banco (ver a seção seguinte, da CSP). Se ninguém buscou o dia antes, não
+   há o que mostrar, por mais que ela clique. Esperar que o botão busque é o
+   mal-entendido de base.
+2. 🔴 **Disparo SOB DEMANDA da rotina roda NA NUVEM, não no computador dela.**
+   Ao acionar a `DJEN – busca do dia pelo computador do escritório` com
+   `fire_trigger`, a resposta terminou em:
+
+   > `run not approved for DELL001 — this run uses the cloud only (no_signed_approval)`
+
+   As rodadas **do horário** (9h37) são assinadas para o computador dela (DELL001)
+   e usam o navegador embutido — por isso funcionam. Um disparo fora do horário
+   **não carrega essa assinatura**, cai na nuvem e morre no bloqueio por país.
+   É isso que faz parecer aleatório: no horário vai, sob demanda não vai.
+
+✅ **O que dizer a ela:** para buscar fora de hora, peça ao Claude **no aplicativo
+do computador** (*"busca o DJEN de hoje e grava no painel"*), não numa conversa na
+nuvem. É o mesmo caminho da rotina.
+
+⚠️ **Não prometa "eu busco agora" de uma sessão na nuvem**, e não ache que
+`fire_trigger` resolve: ele dispara, mas no lugar errado.
+
 ### 🔴 SESSÃO NA NUVEM também não alcança o DJEN — medido em 25/11/2026
 
 Ela pediu *"busca agora"* e depois *"tenta agr"*, de uma sessão do Claude na
